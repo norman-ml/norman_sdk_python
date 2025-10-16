@@ -1,7 +1,5 @@
 import asyncio
 
-import aiofiles
-
 from norman import Norman
 from norman.config_builders.model_builder import ModelBuilder
 from norman.config_builders.model_signature_builder import ModelSignatureBuilder
@@ -59,7 +57,7 @@ model_config = {
 
 model_config_from_builder = (
     ModelBuilder(
-        "my_img_model",
+        "my_img_model2",
         "This is a test model.",
         "This is a test model. but with a longer dd description."
     )
@@ -76,10 +74,7 @@ model_config_from_builder = (
 
 async def main():
     print("Playground")
-    norman = Norman(
-        account_id="23846230582255309714505001774417502931",
-        password="Dolevg1234!"
-    )
+    norman = Norman(api_key="MjM4NDY0ODM0NjIzMTM0Mzc4NjM2OTkwMzExNzA5NTgyODc1NzE=_7vzGkQdcbadZitG0BwD5FtswLgahSL7amUAUbgb-awY=")
     await norman.upload_model(model_config_from_builder)
 
 

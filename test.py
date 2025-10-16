@@ -5,9 +5,14 @@ from pathlib import Path
 from PIL import Image
 
 from norman.norman import Norman, InvocationConfig
+from norman_core.clients.http_client import HttpClient
+from norman_core.services.authenticate import Authenticate
 
 
 async def main():
+    # async with HttpClient() as http_client:
+    #     await Authenticate.login.login_default(http_client, "23846483462313437863699031170958287571")
+
     # response = await Norman.signup("hadolenxx", "Dolevg1234!")
     norman = Norman(api_key="MjM4NDY0ODM0NjIzMTM0Mzc4NjM2OTkwMzExNzA5NTgyODc1NzE=_7vzGkQdcbadZitG0BwD5FtswLgahSL7amUAUbgb-awY=")
 
@@ -18,7 +23,7 @@ async def main():
         print(f"\n🔁 Invocation #{i+1}")
 
         invocation_config: InvocationConfig = {
-            "model_name": "my_img_model",
+            "model_name": "my_img_model2",
             "inputs": {
                 "Straight Image": {
                     "source": "Path",
