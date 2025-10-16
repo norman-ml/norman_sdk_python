@@ -1,6 +1,6 @@
 from typing import Literal, Any
 
-from norman.objects.configs.invocation_config import InputSource
+from norman_objects.shared.inputs.input_source import InputSource
 
 
 class ModelBuilder:
