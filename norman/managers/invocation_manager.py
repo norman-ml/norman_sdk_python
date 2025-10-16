@@ -27,7 +27,7 @@ from norman.objects.configs.invocation_config import InvocationConfig
 class InvocationManager:
     @staticmethod
     async def create_invocation_in_database(http_client: HttpClient, token: Sensitive[str], invocation_config: InvocationConfig):
-        invocations = await Persist.invocations.create_invocations_by_model_names(http_client, token, {invocation_config["model_name"]: 1})
+        invocations = await Persist.invocations.create_invocations_by_model_names(http_client=http_client, token=token, model_name_counter={invocation_config["model_name"]: 1})
         return invocations[0]
 
     @staticmethod

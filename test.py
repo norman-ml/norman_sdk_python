@@ -8,9 +8,8 @@ from norman.norman import Norman, InvocationConfig
 
 
 async def main():
-    client = Norman()
-
-    response = await client.signup_default()
+    # response = await Norman.signup("hadolenxx", "Dolevg1234!")
+    norman = Norman(api_key="MjM4NDY0ODM0NjIzMTM0Mzc4NjM2OTkwMzExNzA5NTgyODc1NzE=_7vzGkQdcbadZitG0BwD5FtswLgahSL7amUAUbgb-awY=")
 
     img_path = Path("/Users/dolevgabay/Desktop/norman/sdk/img_input.jpg")
 
@@ -28,7 +27,7 @@ async def main():
             }
         }
 
-        results = await client.invoke(invocation_config)
+        results = await norman.invoke(invocation_config)
 
         for key, value in results.items():
             print(f"🖼️ {key}: {len(value)} bytes")

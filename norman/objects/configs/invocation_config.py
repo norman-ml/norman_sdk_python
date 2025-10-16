@@ -1,10 +1,7 @@
-from typing import TypedDict, Any, Literal
+from typing import TypedDict
 
-InputSource = Literal["Link", "Path", "Primitive", "Stream"]
+from norman.objects.configs.model_input import ModelInput
 
-class ModelInput(TypedDict):
-    source: InputSource
-    data: Any
 
 class InvocationConfig(TypedDict):
     model_name: str
