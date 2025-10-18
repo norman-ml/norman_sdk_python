@@ -19,13 +19,6 @@ class Norman:
     async def signup(username: str, password: str) -> dict[str, Any]:
         return await AuthenticationManager.signup_with_password(username, password)
 
-    async def invoke(self, invocation_config: InvocationConfig) -> dict[str, bytearray]:
-        async with self._get_http_client() as http_client:
-            invocation = await InvocationManager.create_invocation_in_database(http_client, self._authentication_manager.access_token, invocation_config)
-            await InvocationManager.upload_inputs(http_client, self._authentication_manager.access_token, invocation, invocation_config)
-            await InvocationManager.wait_for_flags(http_client, self._authentication_manager.access_token, invocation)
-            return await InvocationManager.get_results(http_client, self._authentication_manager.access_token, invocation)
-
     async def upload_model(self, model_config: dict[str, Any]) -> Model:
         async with self._get_http_client() as http_client:
             model = ModelFactory.create_model(self._authentication_manager.account_id, model_config)
@@ -33,6 +26,13 @@ class Norman:
             await ModelUploadManager.upload_assets(http_client, self._authentication_manager.access_token, model, model_config["assets"])
             await ModelUploadManager.wait_for_flags(http_client, self._authentication_manager.access_token, model)
             return model
+
+    async def invoke(self, invocation_config: InvocationConfig) -> dict[str, bytearray]:
+        async with self._get_http_client() as http_client:
+            invocation = await InvocationManager.create_invocation_in_database(http_client, self._authentication_manager.access_token, invocation_config)
+            await InvocationManager.upload_inputs(http_client, self._authentication_manager.access_token, invocation, invocation_config)
+            await InvocationManager.wait_for_flags(http_client, self._authentication_manager.access_token, invocation)
+            return await InvocationManager.get_results(http_client, self._authentication_manager.access_token, invocation)
 
     @asynccontextmanager
     async def _get_http_client(self, login=True):

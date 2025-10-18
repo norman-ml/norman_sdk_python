@@ -13,8 +13,8 @@ async def main():
     # async with HttpClient() as http_client:
     #     await Authenticate.login.login_default(http_client, "23846483462313437863699031170958287571")
 
-    # response = await Norman.signup("hadolenxx", "Dolevg1234!")
-    norman = Norman(api_key="MjM4NDY0ODM0NjIzMTM0Mzc4NjM2OTkwMzExNzA5NTgyODc1NzE=_7vzGkQdcbadZitG0BwD5FtswLgahSL7amUAUbgb-awY=")
+    # response = await Norman.signup("hadolenxx5", "Dolevg1234!")
+    norman = Norman(api_key="ZGsorQTN82NtOsZJJXa3Tib2T4FHgdrLU-Y5QmaAFcGWD4WB--Z-jeg_6N7zclQ1WjL0gM6r9yO7rD5KAwOwpWB-YLJH0T9vMpTmCbTIbHjs0nQC")
 
     img_path = Path("/Users/dolevgabay/Desktop/norman/sdk/img_input.jpg")
 
