@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -9,9 +10,10 @@ from norman_objects.services.authenticate.login.api_key_login_request import Api
 from norman_objects.services.authenticate.register.register_auth_factor_request import RegisterAuthFactorRequest
 from norman_objects.services.authenticate.signup.signup_password_request import SignupPasswordRequest
 from norman_objects.shared.security.sensitive import Sensitive
+from norman_utils_external.singleton import Singleton
 
 
-class AuthenticationManager:
+class AuthenticationManager(metaclass=Singleton):
     def __init__(self, api_key: Optional[str] = None):
         self._api_key = api_key
         self._account_id = None
@@ -70,3 +72,11 @@ class AuthenticationManager:
                 "api_key": api_key,
                 "message": "Signup successful. Your API key has been generated. Please copy and store it securely — it will not be shown again."
             }
+
+    @asynccontextmanager
+    async def get_http_client(self, login=True):
+        http_client = HttpClient()
+        if login and self.access_token_expired:
+            await self.login_internal()
+        yield http_client
+        await http_client.close()

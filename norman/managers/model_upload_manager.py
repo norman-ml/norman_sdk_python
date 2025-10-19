@@ -1,6 +1,4 @@
 import asyncio
-import io
-import os
 from typing import Any
 
 import aiofiles
@@ -20,19 +18,37 @@ from norman_objects.shared.status_flags.status_flag import StatusFlag
 from norman_objects.shared.status_flags.status_flag_value import StatusFlagValue
 
 from norman.helpers.get_buffer_size import get_buffer_size
+from norman.managers.authentication_manager import AuthenticationManager
+from norman.objects.configs.model_config import ModelConfig
 
 
 class ModelUploadManager:
-    @staticmethod
-    async def upload_model(http_client: HttpClient, token: Sensitive[str], model: Model) -> Model:
-        response = await Persist.models.create_models(http_client, token, [model])
+    def __init__(self):
+        self._authentication_manager = AuthenticationManager()
+        self._file_pull_service = FilePull()
+        self._file_push_service = FilePush()
+        self._persist_service = Persist()
+
+    async def upload_model(self, model_config_dict: dict[str, Any]) -> Model:
+        model_config = ModelConfig.model_validate(model_config_dict)
+        async with self._authentication_manager.get_http_client() as http_client:
+            for asset in model_config.assets:
+                asset.account_id = self._authentication_manager.account_id
+            model = Model(account_id=self._authentication_manager.account_id, **model_config.model_dump())
+
+            model = await self._create_model_in_persist(http_client, self._authentication_manager.access_token, model)
+            await self._upload_assets(http_client, self._authentication_manager.access_token, model, model_config_dict["assets"])
+            await self._wait_for_flags(http_client, self._authentication_manager.access_token, model)
+            return model
+
+    async def _create_model_in_persist(self, http_client: HttpClient, token: Sensitive[str], model: Model) -> Model:
+        response = await self._persist_service.models.create_models(http_client, token, [model])
 
         if len(response) == 0:
             raise ValueError("Failed to create model")
         return next(iter(response.values()))
 
-    @staticmethod
-    async def upload_assets(http_client: HttpClient, token: Sensitive[str], model: Model, assets: list[dict[str, Any]]):
+    async def _upload_assets(self, http_client: HttpClient, token: Sensitive[str], model: Model, assets: list[dict[str, Any]]):
         tasks = []
         for model_asset in model.assets:
             asset = next(asset for asset in assets if asset["asset_name"] == model_asset.asset_name)
@@ -40,56 +56,52 @@ class ModelUploadManager:
             asset_data = asset["data"]
 
             if asset_source == "Link":
-                tasks.append(ModelUploadManager._upload_link(http_client, token, model, model_asset, asset_data))
+                tasks.append(self._upload_link(http_client, token, model, model_asset, asset_data))
             elif asset_source == "Path":
-                tasks.append(ModelUploadManager._upload_file(http_client, token, model, model_asset, asset_data))
+                tasks.append(self._upload_file(http_client, token, model, model_asset, asset_data))
             elif asset_source == "Stream":
-                tasks.append(ModelUploadManager._upload_buffer(http_client, token, model, model_asset, asset_data))
+                tasks.append(self._upload_buffer(http_client, token, model, model_asset, asset_data))
             else:
                 raise ValueError("Model asset source must be one of link, path, or stream.")
 
         await asyncio.gather(*tasks)
 
-    @staticmethod
-    async def _upload_link(http_client: HttpClient, token: Sensitive[str], model: Model, model_asset: ModelAsset, link: str):
+    async def _upload_link(self, http_client: HttpClient, token: Sensitive[str], model: Model, model_asset: ModelAsset, link: str):
         download_request = AssetDownloadRequest(
             account_id=model.account_id,
             model_id=model.id,
             asset_id=model_asset.id,
             links=[link]
         )
-        await FilePull.submit_asset_links(http_client, token, download_request)
+        await self._file_pull_service.submit_asset_links(http_client, token, download_request)
 
-    @staticmethod
-    async def _upload_file(http_client: HttpClient, token: Sensitive[str], model: Model, model_asset: ModelAsset, path: str):
+    async def _upload_file(self, http_client: HttpClient, token: Sensitive[str], model: Model, model_asset: ModelAsset, path: str):
         async with aiofiles.open(path, mode="rb") as file:
-            await ModelUploadManager._upload_buffer(http_client, token, model, model_asset, file)
+            await self._upload_buffer(http_client, token, model, model_asset, file)
 
-    @staticmethod
-    async def _upload_buffer(http_client: HttpClient, token: Sensitive[str], model: Model, model_asset: ModelAsset, file_buffer: Any):
+    async def _upload_buffer(self, http_client: HttpClient, token: Sensitive[str], model: Model, model_asset: ModelAsset, file_buffer: Any):
         pairing_request = SocketAssetPairingRequest(
             account_id=model.account_id,
             model_id=model.id,
             asset_id=model_asset.id,
             file_size_in_bytes=get_buffer_size(file_buffer),
         )
-        socket_info = await FilePush.allocate_socket_for_asset(http_client, token, pairing_request)
+        socket_info = await self._file_push_service.allocate_socket_for_asset(http_client, token, pairing_request)
         checksum = await SocketClient.write_and_digest(socket_info, file_buffer)
 
         checksum_request = ChecksumRequest(
             pairing_id=socket_info.pairing_id,
             checksum=checksum
         )
-        await FilePush.complete_file_transfer(http_client, token, checksum_request)
+        await self._file_push_service.complete_file_transfer(http_client, token, checksum_request)
 
-    @staticmethod
-    async def wait_for_flags(http_client: HttpClient, token: Sensitive[str], model: Model):
+    async def _wait_for_flags(self, http_client: HttpClient, token: Sensitive[str], model: Model):
         while True:
             model_flag_constraints = QueryConstraints.equals("Model_Flags", "Entity_ID", model.id)
             asset_flag_constraints = QueryConstraints.includes("Asset_Flags", "Entity_ID", [asset.id for asset in model.assets])
 
-            model_flag_task = Persist.model_flags.get_model_status_flags(http_client, token, model_flag_constraints)
-            asset_flag_task = Persist.model_flags.get_asset_status_flags(http_client, token, asset_flag_constraints)
+            model_flag_task = self._persist_service.model_flags.get_model_status_flags(http_client, token, model_flag_constraints)
+            asset_flag_task = self._persist_service.model_flags.get_asset_status_flags(http_client, token, asset_flag_constraints)
 
             results = await asyncio.gather(model_flag_task, asset_flag_task)
 
@@ -103,11 +115,3 @@ class ModelUploadManager:
             if all_finished:
                 break
             await asyncio.sleep(5)
-
-    @staticmethod
-    def _get_buffer_size(file_obj):
-        if hasattr(file_obj, "fileno"):
-            return os.fstat(file_obj.fileno()).st_size
-        if isinstance(file_obj, io.BytesIO):
-            return file_obj.getbuffer().nbytes
-        raise ValueError("Unsupported file object or operation")

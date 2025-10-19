@@ -1,8 +1,6 @@
 import asyncio
 
 from norman import Norman
-from norman.config_builders.model_builder import ModelBuilder
-from norman.config_builders.model_signature_builder import ModelSignatureBuilder
 
 link = "https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcQV-ielrEM4nyyG6fJhp0YThlkfFxa6WKe2qPWpRCWwpZtOjfC6Nh5NBgWiZlkSN1SDIw5b"
 file_path = "D:/Norman/norman_core_sdk/tests/samples/sample_inputs/sample_input.jpg"
@@ -10,19 +8,20 @@ API_KEY = "2m8OcvniQDgoBUrOjcAxNfzcFHWkLwaj9p5Faf1wizE="
 account_id = "23845703660070374099865734459398242515"
 
 model_config = {
-    "name": "my_test_model",
+    "name": "my_test_model_q",
     "short_description": "This is a test model.",
     "long_description": "This is a test model. but with a longer description.",
-     "assets": [
+    "version_label": "v2",
+    "assets": [
          {
              "asset_name": 'Logo',
-             "source": "link",
+             "source": "Link",
              "data": link
          },
          {
              "asset_name": 'File',
-             "source": "file",
-             "data": "path/to/file.pt"
+             "source": "Path",
+             "data": "/Users/dolevgabay/Desktop/norman/sdk/image_qa_model.pt"
          },
     ],
     "inputs": [
@@ -55,27 +54,27 @@ model_config = {
     ]
 }
 
-model_config_from_builder = (
-    ModelBuilder(
-        "my_img_model2",
-        "This is a test model.",
-        "This is a test model. but with a longer dd description."
-    )
-    .add_asset("Logo", "Path", "/Users/dolevgabay/Desktop/norman/sdk/img_input.jpg")
-    .add_asset("File", "Path", "/Users/dolevgabay/Desktop/norman/sdk/image_qa_model.pt")
-    .add_input(
-        ModelSignatureBuilder("Straight Image", "Image", "png").add_parameter("image", "Image", "png").build()
-    )
-    .add_output(
-        ModelSignatureBuilder("Mirrored Image", "Image", "png").add_parameter("mirror_image", "Image", "png").build()
-    )
-    .add_version_label("one")
-).build()
+# model_config_from_builder = (
+#     ModelBuilder(
+#         "my_img_model2",
+#         "This is a test model.",
+#         "This is a test model. but with a longer dd description."
+#     )
+#     .add_asset("Logo", "Path", "/Users/dolevgabay/Desktop/norman/sdk/img_input.jpg")
+#     .add_asset("File", "Path", "/Users/dolevgabay/Desktop/norman/sdk/image_qa_model.pt")
+#     .add_input(
+#         ModelSignatureBuilder("Straight Image", "Image", "png").add_parameter("image", "Image", "png").build()
+#     )
+#     .add_output(
+#         ModelSignatureBuilder("Mirrored Image", "Image", "png").add_parameter("mirror_image", "Image", "png").build()
+#     )
+#     .add_version_label("one")
+# ).build()
 
 async def main():
     print("Playground")
-    norman = Norman(api_key="MjM4NDY0ODM0NjIzMTM0Mzc4NjM2OTkwMzExNzA5NTgyODc1NzE=_7vzGkQdcbadZitG0BwD5FtswLgahSL7amUAUbgb-awY=")
-    await norman.upload_model(model_config_from_builder)
+    norman = Norman(api_key="ZGsorQTN82NtOsZJJXa3Tib2T4FHgdrLU-Y5QmaAFcGWD4WB--Z-jeg_6N7zclQ1WjL0gM6r9yO7rD5KAwOwpWB-YLJH0T9vMpTmCbTIbHjs0nQC")
+    await norman.upload_model(model_config)
 
 
 if __name__ == "__main__":

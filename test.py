@@ -4,9 +4,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from norman.norman import Norman, InvocationConfig
-from norman_core.clients.http_client import HttpClient
-from norman_core.services.authenticate import Authenticate
+from norman import Norman
 
 
 async def main():
@@ -22,11 +20,11 @@ async def main():
     for i in range(1):
         print(f"\n🔁 Invocation #{i+1}")
 
-        invocation_config: InvocationConfig = {
-            "model_name": "my_img_model2",
+        invocation_config = {
+            "model_name": "my_test_model_q",
             "inputs": {
-                "Straight Image": {
-                    "source": "Path",
+                "Input": {
+                    "source": "File",
                     "data": img_path,
                 }
             }
