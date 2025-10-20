@@ -5,7 +5,7 @@ description = "Norman SDK"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "norman_core_sdk @ git+https://github.com/norman-ml/norman_core_sdk.git",
+    "norman_core_sdk @ git+https://github.com/norman-ml/norman_core_sdk.git@86c4p1j6d/feature/sdk-authentication",
 
     "pyjwt==2.10.1"
 ]

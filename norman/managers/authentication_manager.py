@@ -1,4 +1,3 @@
-from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -18,6 +17,9 @@ class AuthenticationManager(metaclass=Singleton):
         self._api_key = api_key
         self._account_id = None
         self._access_token: Optional[Sensitive[str]] = None
+
+        self._authentication_service = Authenticate()
+        self._http_client = HttpClient()
 
     @property
     def access_token(self) -> Optional[Sensitive[str]]:
@@ -40,32 +42,32 @@ class AuthenticationManager(metaclass=Singleton):
             return True
 
     async def login_internal(self):
-        async with HttpClient() as http_client:
+        async with self._http_client:
             if self._api_key is not None and self._api_key != "":
                 request = ApiKeyLoginRequest(api_key=Sensitive(self._api_key))
-                login_response = await Authenticate.login.login_with_key(http_client, request)
+                login_response = await self._authentication_service.login.login_with_key(request)
             else:
-                login_response = await Authenticate.signup.signup_default(http_client)
+                login_response = await self._authentication_service.signup.signup_default()
 
             self._account_id = login_response.account.id
             self._access_token = login_response.access_token
 
     @staticmethod
     async def signup_with_password(username: str, password: str):
-        async with HttpClient() as http_client:
+        async with HttpClient():
             signup_request = SignupPasswordRequest(name=username, password=Sensitive(password))
-            account = await Authenticate.signup.signup_with_password(http_client, signup_request)
+            account = await Authenticate.signup.signup_with_password(signup_request)
 
             login_request = AccountIDPasswordLoginRequest(account_id=account.id, password=Sensitive(password))
-            login_response = await Authenticate.login.login_password_account_id(http_client, login_request)
+            login_response = await Authenticate.login.login_password_account_id(login_request)
             first_access_token = login_response.access_token
 
             login_request = AccountIDPasswordLoginRequest(account_id=account.id, password=Sensitive(password))
-            login_response = await Authenticate.login.login_password_account_id(http_client, login_request)
+            login_response = await Authenticate.login.login_password_account_id(login_request)
             second_access_token = login_response.access_token
 
             generate_api_key_request = RegisterAuthFactorRequest(account_id=account.id, second_token=second_access_token)
-            api_key = await Authenticate.register.generate_api_key(http_client, first_access_token, generate_api_key_request)
+            api_key = await Authenticate.register.generate_api_key(first_access_token, generate_api_key_request)
 
             return {
                 "account": account,
@@ -73,10 +75,6 @@ class AuthenticationManager(metaclass=Singleton):
                 "message": "Signup successful. Your API key has been generated. Please copy and store it securely — it will not be shown again."
             }
 
-    @asynccontextmanager
-    async def get_http_client(self, login=True):
-        http_client = HttpClient()
-        if login and self.access_token_expired:
+    async def validate_access_token(self):
+        if self.access_token_expired:
             await self.login_internal()
-        yield http_client
-        await http_client.close()

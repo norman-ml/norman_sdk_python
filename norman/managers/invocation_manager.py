@@ -28,6 +28,8 @@ from norman.objects.configs.invocation_config import InvocationConfig
 class InvocationManager:
     def __init__(self):
         self._authentication_manager = AuthenticationManager()
+        self._http_client = HttpClient()
+
         self._file_pull_service = FilePull()
         self._file_push_service = FilePush()
         self._persist_service = Persist()
@@ -35,17 +37,19 @@ class InvocationManager:
 
     async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, bytearray]:
         invocation_config = InvocationConfig.model_validate(invocation_config)
-        async with self._authentication_manager.get_http_client() as http_client:
-            invocation = await self._create_invocation_in_database(http_client, self._authentication_manager.access_token, invocation_config)
-            await self._upload_inputs(http_client, self._authentication_manager.access_token, invocation, invocation_config)
-            await self._wait_for_flags(http_client, self._authentication_manager.access_token, invocation)
-            return await self._get_results(http_client, self._authentication_manager.access_token, invocation)
+        await self._authentication_manager.validate_access_token()
 
-    async def _create_invocation_in_database(self, http_client: HttpClient, token: Sensitive[str], invocation_config: InvocationConfig):
-        invocations = await self._persist_service.invocations.create_invocations_by_model_names(http_client=http_client, token=token, model_name_counter={invocation_config.model_name: 1})
+        async with self._http_client:
+            invocation = await self._create_invocation_in_database(self._authentication_manager.access_token, invocation_config)
+            await self._upload_inputs(self._authentication_manager.access_token, invocation, invocation_config)
+            await self._wait_for_flags(self._authentication_manager.access_token, invocation)
+            return await self._get_results(self._authentication_manager.access_token, invocation)
+
+    async def _create_invocation_in_database(self, token: Sensitive[str], invocation_config: InvocationConfig):
+        invocations = await self._persist_service.invocations.create_invocations_by_model_names(token=token, model_name_counter={invocation_config.model_name: 1})
         return invocations[0]
 
-    async def _upload_inputs(self, http_client: HttpClient, token: Sensitive[str], invocation: Invocation, invocation_config: InvocationConfig):
+    async def _upload_inputs(self, token: Sensitive[str], invocation: Invocation, invocation_config: InvocationConfig):
         _tasks = []
 
         for input in invocation.inputs:
@@ -53,20 +57,20 @@ class InvocationManager:
             input_source = input_config.source
             input_data = input_config.data
             if input_source == "Primitive":
-                _tasks.append(self._upload_primitive(http_client, token, input, input_data))
+                _tasks.append(self._upload_primitive(token, input, input_data))
             elif input_source == "File":
-                _tasks.append(self._upload_file(http_client, token, input, input_data))
+                _tasks.append(self._upload_file(token, input, input_data))
             elif input_source == "Stream":
-                _tasks.append(self._upload_buffer(http_client, token, input, input_data))
+                _tasks.append(self._upload_buffer(token, input, input_data))
             else:
-                _tasks.append(self._upload_link(http_client, token, input, input_data))
+                _tasks.append(self._upload_link(token, input, input_data))
 
         await asyncio.gather(*_tasks)
 
-    async def _wait_for_flags(self, http_client, token, invocation: Invocation):
+    async def _wait_for_flags(self, token: Sensitive[str], invocation: Invocation):
         while True:
             invocation_constraints = QueryConstraints.equals("Invocation_Flags", "Entity_ID", invocation.id)
-            results = await self._persist_service.invocation_flags.get_invocation_status_flags(http_client, token, invocation_constraints)
+            results = await self._persist_service.invocation_flags.get_invocation_status_flags(token, invocation_constraints)
             if len(results) == 0:
                 raise ValueError(f"Invocation {invocation.id} has no flags")
 
@@ -84,10 +88,10 @@ class InvocationManager:
 
             await asyncio.sleep(1)
 
-    async def _get_results(self, http_client: HttpClient, token: Sensitive[str], invocation: Invocation) -> dict[str, bytearray]:
+    async def _get_results(self, token: Sensitive[str], invocation: Invocation) -> dict[str, bytearray]:
         output_tasks = []
         for output in invocation.outputs:
-            task = self._get_output_results(http_client, token, invocation, output.id)
+            task = self._get_output_results(token, invocation, output.id)
             output_tasks.append(task)
 
         results: list[bytearray] = await asyncio.gather(*output_tasks)
@@ -96,12 +100,12 @@ class InvocationManager:
             for output, result in zip(invocation.outputs, results)
         }
 
-    async def _get_output_results(self, http_client: HttpClient, token: Sensitive[str], invocation: Invocation, output_id: str) -> bytearray:
+    async def _get_output_results(self, token: Sensitive[str], invocation: Invocation, output_id: str) -> bytearray:
         account_id = invocation.account_id
         model_id = invocation.model_id
         invocation_id = invocation.id
 
-        headers, stream = await self._retrieve_service.get_invocation_output(http_client, token, account_id, model_id, invocation_id, output_id)
+        headers, stream = await self._retrieve_service.get_invocation_output(token, account_id, model_id, invocation_id, output_id)
 
         results = bytearray()
         async for chunk in stream:
@@ -109,18 +113,18 @@ class InvocationManager:
 
         return results
 
-    async def _upload_primitive(self, http_client: HttpClient, token: Sensitive[str], input: InvocationSignature, data: Any):
+    async def _upload_primitive(self, token: Sensitive[str], input: InvocationSignature, data: Any):
         buffer = io.BytesIO()
         buffer.write(str(data).encode("utf-8"))
         buffer.seek(0)
 
-        await self._upload_buffer(http_client, token, input, buffer)
+        await self._upload_buffer(token, input, buffer)
 
-    async def _upload_file(self, http_client: HttpClient, token: Sensitive[str], input: InvocationSignature, file_path: str):
+    async def _upload_file(self, token: Sensitive[str], input: InvocationSignature, file_path: str):
         async with aiofiles.open(file_path, mode="rb") as file:
-            await self._upload_buffer(http_client, token, input, file)
+            await self._upload_buffer(token, input, file)
 
-    async def _upload_buffer(self, http_client: HttpClient, token: Sensitive[str], input: InvocationSignature, buffer: Union[AsyncBufferedReader, BufferedReader]):
+    async def _upload_buffer(self, token: Sensitive[str], input: InvocationSignature, buffer: Union[AsyncBufferedReader, BufferedReader]):
         pairing_request = SocketInputPairingRequest(
             invocation_id=input.invocation_id,
             input_id=input.id,
@@ -129,7 +133,7 @@ class InvocationManager:
             file_size_in_bytes=get_buffer_size(buffer)
         )
         request = await self._file_push_service.allocate_socket_for_input(
-            http_client, token, pairing_request
+            token, pairing_request
         )
 
         file_checksum = await SocketClient.write_and_digest(request, buffer)
@@ -137,9 +141,9 @@ class InvocationManager:
         checksum_request = ChecksumRequest(
             pairing_id=request.pairing_id, checksum=file_checksum
         )
-        await self._file_push_service.complete_file_transfer(http_client, token, checksum_request)
+        await self._file_push_service.complete_file_transfer(token, checksum_request)
 
-    async def _upload_link(self, http_client: HttpClient, token: Sensitive[str], input: InvocationSignature, link: str):
+    async def _upload_link(self, token: Sensitive[str], input: InvocationSignature, link: str):
         download_request = InputDownloadRequest(
             signature_id=input.signature_id,
             invocation_id=input.invocation_id,
@@ -148,5 +152,5 @@ class InvocationManager:
             model_id=input.model_id,
             links=[link]
         )
-        response = await self._file_pull_service.submit_input_links(http_client, token, download_request)
+        response = await self._file_pull_service.submit_input_links(token, download_request)
         return response
