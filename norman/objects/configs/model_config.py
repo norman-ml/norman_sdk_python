@@ -12,6 +12,8 @@ from pydantic import BaseModel, Field, field_validator
 
 class ModelConfig(BaseModel):
     name: str = Field(..., description="Model name (unique per account)")
+    model_class: str = Field(..., description="Model class identifier (e.g., image-to-image)")
+    url: str = Field(..., description="Model endpoint URL (if applicable, may be empty at creation time)")
     short_description: str = Field(..., description="Short summary of the model")
     long_description: str = Field(..., description="Human-readable description")
     version_label: str = Field(..., description="Version label for this model")

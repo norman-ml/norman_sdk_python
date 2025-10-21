@@ -75,6 +75,7 @@ class ModelUploadManager:
             account_id=model.account_id,
             model_id=model.id,
             asset_id=model_asset.id,
+            asset_name=model_asset.asset_name,
             links=[link]
         )
         await self._file_pull_service.submit_asset_links(token, download_request)
@@ -101,11 +102,11 @@ class ModelUploadManager:
 
     async def _wait_for_flags(self, token: Sensitive[str], model: Model):
         while True:
-            model_flag_constraints = QueryConstraints.equals("Model_Flags", "Entity_ID", model.id)
-            asset_flag_constraints = QueryConstraints.includes("Asset_Flags", "Entity_ID", [asset.id for asset in model.assets])
+            model_flag_constraints = QueryConstraints.equals("Status_Flags", "Entity_ID", model.id)
+            asset_flag_constraints = QueryConstraints.includes("Status_Flags", "Entity_ID", [asset.id for asset in model.assets])
 
-            model_flag_task = self._persist_service.model_flags.get_model_status_flags(token, model_flag_constraints)
-            asset_flag_task = self._persist_service.model_flags.get_asset_status_flags(token, asset_flag_constraints)
+            model_flag_task = self._persist_service.status_flags.get_status_flags(token, model_flag_constraints)
+            asset_flag_task = self._persist_service.status_flags.get_status_flags(token, asset_flag_constraints)
 
             results = await asyncio.gather(model_flag_task, asset_flag_task)
 

@@ -69,8 +69,8 @@ class InvocationManager:
 
     async def _wait_for_flags(self, token: Sensitive[str], invocation: Invocation):
         while True:
-            invocation_constraints = QueryConstraints.equals("Invocation_Flags", "Entity_ID", invocation.id)
-            results = await self._persist_service.invocation_flags.get_invocation_status_flags(token, invocation_constraints)
+            invocation_constraints = QueryConstraints.equals("Status_Flags", "Entity_ID", invocation.id)
+            results = await self._persist_service.status_flags.get_status_flags(token, invocation_constraints)
             if len(results) == 0:
                 raise ValueError(f"Invocation {invocation.id} has no flags")
 

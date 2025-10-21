@@ -55,19 +55,21 @@ class AuthenticationManager(metaclass=Singleton):
     @staticmethod
     async def signup_with_password(username: str, password: str):
         async with HttpClient():
+            authentication_service = Authenticate()
+
             signup_request = SignupPasswordRequest(name=username, password=Sensitive(password))
-            account = await Authenticate.signup.signup_with_password(signup_request)
+            account = await authentication_service.signup.signup_with_password(signup_request)
 
             login_request = AccountIDPasswordLoginRequest(account_id=account.id, password=Sensitive(password))
-            login_response = await Authenticate.login.login_password_account_id(login_request)
+            login_response = await authentication_service.login.login_password_account_id(login_request)
             first_access_token = login_response.access_token
 
             login_request = AccountIDPasswordLoginRequest(account_id=account.id, password=Sensitive(password))
-            login_response = await Authenticate.login.login_password_account_id(login_request)
+            login_response = await authentication_service.login.login_password_account_id(login_request)
             second_access_token = login_response.access_token
 
             generate_api_key_request = RegisterAuthFactorRequest(account_id=account.id, second_token=second_access_token)
-            api_key = await Authenticate.register.generate_api_key(first_access_token, generate_api_key_request)
+            api_key = await authentication_service.register.generate_api_key(first_access_token, generate_api_key_request)
 
             return {
                 "account": account,
