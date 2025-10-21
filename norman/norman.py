@@ -23,7 +23,3 @@ class Norman(metaclass=Singleton):
 
     async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, bytearray]:
         return await self._invocation_manager.invoke(invocation_config)
-
-
-
-    #TODO Close
