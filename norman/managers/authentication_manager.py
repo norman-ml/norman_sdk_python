@@ -47,7 +47,7 @@ class AuthenticationManager(metaclass=Singleton):
                 request = ApiKeyLoginRequest(api_key=Sensitive(self._api_key))
                 login_response = await self._authentication_service.login.login_with_key(request)
             else:
-                login_response = await self._authentication_service.signup.signup_default()
+                raise ValueError("API key is required. Please provide a valid API key.")
 
             self._account_id = login_response.account.id
             self._access_token = login_response.access_token

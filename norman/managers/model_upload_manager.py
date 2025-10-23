@@ -32,12 +32,10 @@ class ModelUploadManager:
         self._persist_service = Persist()
 
     async def upload_model(self, model_config_dict: dict[str, Any]) -> Model:
-        model_config = ModelConfig.model_validate(model_config_dict)
         await self._authentication_manager.validate_access_token()
+        model_config = ModelConfig.model_validate(model_config_dict)
         
         async with self._http_client:
-            for asset in model_config.assets:
-                asset.account_id = self._authentication_manager.account_id
             model = Model(account_id=self._authentication_manager.account_id, **model_config.model_dump())
 
             model = await self._create_model_in_persist(self._authentication_manager.access_token, model)

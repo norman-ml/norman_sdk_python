@@ -11,6 +11,8 @@ from norman_objects.shared.models.model_type import ModelType
 from norman_objects.shared.models.output_format import OutputFormat
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from norman.managers.authentication_manager import AuthenticationManager
+
 
 class ModelConfig(BaseModel):
     name: str = Field(..., description="Model name")
@@ -28,6 +30,18 @@ class ModelConfig(BaseModel):
     inputs: List[ModelSignature] = Field(..., description="Input signatures")
     outputs: List[ModelSignature] = Field(..., description="Output signatures")
     assets: List[ModelAsset] = Field(..., description="Associated model assets")
+
+    # Inject account_id from AuthenticationManager into all assets
+    @model_validator(mode="before")
+    def inject_account_id(cls, values):
+        if "assets" in values and isinstance(values["assets"], list):
+            auth_manager = AuthenticationManager()
+            account_id = getattr(auth_manager, "account_id", None)
+            if account_id:
+                for asset in values["assets"]:
+                    if "account_id" not in asset or not asset["account_id"]:
+                        asset["account_id"] = account_id
+        return values
 
     @model_validator(mode="before")
     def generate_version_label(cls, values):
