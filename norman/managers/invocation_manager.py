@@ -18,9 +18,9 @@ from norman_objects.shared.queries.query_constraints import QueryConstraints
 from norman_objects.shared.security.sensitive import Sensitive
 from norman_objects.shared.status_flags.status_flag import StatusFlag
 from norman_objects.shared.status_flags.status_flag_value import StatusFlagValue
+from norman_utils_external.get_buffer_size import get_buffer_size
 from norman_utils_external.streaming_utils import AsyncBufferedReader, BufferedReader
 
-from norman.helpers.get_buffer_size import get_buffer_size
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation_config import InvocationConfig
 
@@ -37,7 +37,7 @@ class InvocationManager:
 
     async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, bytearray]:
         invocation_config = InvocationConfig.model_validate(invocation_config)
-        await self._authentication_manager.validate_access_token()
+        await self._authentication_manager.invalidate_access_token()
 
         async with self._http_client:
             invocation = await self._create_invocation_in_database(self._authentication_manager.access_token, invocation_config)
@@ -50,22 +50,27 @@ class InvocationManager:
         return invocations[0]
 
     async def _upload_inputs(self, token: Sensitive[str], invocation: Invocation, invocation_config: InvocationConfig):
-        _tasks = []
+        tasks = []
 
         for input in invocation.inputs:
             input_config = invocation_config.inputs[input.display_title]
             input_source = input_config.source
             input_data = input_config.data
-            if input_source == "Primitive":
-                _tasks.append(self._upload_primitive(token, input, input_data))
-            elif input_source == "File":
-                _tasks.append(self._upload_file(token, input, input_data))
-            elif input_source == "Stream":
-                _tasks.append(self._upload_buffer(token, input, input_data))
-            else:
-                _tasks.append(self._upload_link(token, input, input_data))
 
-        await asyncio.gather(*_tasks)
+            if input_source == "Primitive":
+                task = self._upload_primitive(token, input, input_data)
+                tasks.append(task)
+            elif input_source == "File":
+                task = self._upload_file(token, input, input_data)
+                tasks.append(task)
+            elif input_source == "Stream":
+                task = self._upload_buffer(token, input, input_data)
+                tasks.append(task)
+            else:
+                task = self._upload_link(token, input, input_data)
+                tasks.append(task)
+
+        await asyncio.gather(*tasks)
 
     async def _wait_for_flags(self, token: Sensitive[str], invocation: Invocation):
         while True:

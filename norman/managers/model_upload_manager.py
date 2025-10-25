@@ -16,8 +16,8 @@ from norman_objects.shared.queries.query_constraints import QueryConstraints
 from norman_objects.shared.security.sensitive import Sensitive
 from norman_objects.shared.status_flags.status_flag import StatusFlag
 from norman_objects.shared.status_flags.status_flag_value import StatusFlagValue
+from norman_utils_external.get_buffer_size import get_buffer_size
 
-from norman.helpers.get_buffer_size import get_buffer_size
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.model_config import ModelConfig
 
@@ -32,7 +32,7 @@ class ModelUploadManager:
         self._persist_service = Persist()
 
     async def upload_model(self, model_config_dict: dict[str, Any]) -> Model:
-        await self._authentication_manager.validate_access_token()
+        await self._authentication_manager.invalidate_access_token()
         model_config = ModelConfig.model_validate(model_config_dict)
         
         async with self._http_client:
