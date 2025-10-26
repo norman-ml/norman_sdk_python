@@ -25,7 +25,7 @@ from norman.objects.configs.invocation_result import InvocationResult
 
 
 class InvocationManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self._authentication_manager = AuthenticationManager()
         self._http_client = HttpClient()
 
@@ -45,11 +45,11 @@ class InvocationManager:
         await self._wait_for_flags(self._authentication_manager.access_token, invocation)
         return await self._get_results(self._authentication_manager.access_token, invocation)
 
-    async def _create_invocation_in_database(self, token: Sensitive[str], invocation_config: InvocationConfig):
+    async def _create_invocation_in_database(self, token: Sensitive[str], invocation_config: InvocationConfig) -> Invocation:
         invocations = await self._persist_service.invocations.create_invocations_by_model_names(token=token, model_name_counter={invocation_config.model_name: 1})
         return invocations[0]
 
-    async def _upload_inputs(self, token: Sensitive[str], invocation: Invocation, invocation_config: InvocationConfig):
+    async def _upload_inputs(self, token: Sensitive[str], invocation: Invocation, invocation_config: InvocationConfig) -> None:
         tasks = []
 
         for input in invocation.inputs:
@@ -95,7 +95,7 @@ class InvocationManager:
 
         await asyncio.gather(*tasks)
 
-    async def _wait_for_flags(self, token: Sensitive[str], invocation: Invocation):
+    async def _wait_for_flags(self, token: Sensitive[str], invocation: Invocation) -> None:
         entity_ids = [invocation.id]
         entity_ids.extend([input.id for input in invocation.inputs])
         entity_ids.extend([output.id for output in invocation.outputs])
@@ -136,7 +136,7 @@ class InvocationManager:
 
         return InvocationResult(output_handles)
 
-    async def _get_output_results(self, token: Sensitive[str], invocation: Invocation, output: InvocationSignature):
+    async def _get_output_results(self, token: Sensitive[str], invocation: Invocation, output: InvocationSignature) -> InvocationOutputHandle:
         account_id = invocation.account_id
         model_id = invocation.model_id
         invocation_id = invocation.id

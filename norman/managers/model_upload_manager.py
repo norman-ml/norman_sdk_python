@@ -17,22 +17,23 @@ from norman_objects.shared.queries.query_constraints import QueryConstraints
 from norman_objects.shared.security.sensitive import Sensitive
 from norman_objects.shared.status_flags.status_flag import StatusFlag
 from norman_objects.shared.status_flags.status_flag_value import StatusFlagValue
-from norman_utils_external.get_buffer_size import get_buffer_size
 
 from norman._app_config import NormanAppConfig
 from norman.helpers.file_transfer_manager import FileTransferManager
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.model_config import ModelConfig
+from norman_utils_external.file_utils import FileUtils
 
 
 class ModelUploadManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self._authentication_manager = AuthenticationManager()
         self._http_client = HttpClient()
         self._file_transfer = FileTransferManager()
 
         self._file_pull_service = FilePull()
         self._file_push_service = FilePush()
+        self._file_utils = FileUtils()
         self._persist_service = Persist()
 
     async def upload_model(self, model_config_dict: dict[str, Any]) -> Model:
@@ -54,7 +55,7 @@ class ModelUploadManager:
             raise ValueError("Failed to create model")
         return next(iter(response.values()))
 
-    async def _upload_assets(self, token: Sensitive[str], model: Model, assets: list[dict[str, Any]]):
+    async def _upload_assets(self, token: Sensitive[str], model: Model, assets: list[dict[str, Any]]) -> None:
         tasks = []
 
         for model_asset in model.assets:
@@ -87,7 +88,7 @@ class ModelUploadManager:
 
         await asyncio.gather(*tasks)
 
-    async def _upload_link(self, token: Sensitive[str], model: Model, model_asset: ModelAsset, link: str):
+    async def _upload_link(self, token: Sensitive[str], model: Model, model_asset: ModelAsset, link: str) -> list[str]:
         download_request = AssetDownloadRequest(
             account_id=model.account_id,
             model_id=model.id,
@@ -97,16 +98,16 @@ class ModelUploadManager:
         )
         await self._file_pull_service.submit_asset_links(token, download_request)
 
-    async def _upload_file(self, token: Sensitive[str], model: Model, model_asset: ModelAsset, path: str):
+    async def _upload_file(self, token: Sensitive[str], model: Model, model_asset: ModelAsset, path: str) -> None:
         async with aiofiles.open(path, mode="rb") as file:
             await self._upload_buffer(token, model, model_asset, file)
 
-    async def _upload_buffer(self, token: Sensitive[str], model: Model, model_asset: ModelAsset, file_buffer: Any):
+    async def _upload_buffer(self, token: Sensitive[str], model: Model, model_asset: ModelAsset, file_buffer: Any) -> None:
         pairing_request = SocketAssetPairingRequest(
             account_id=model.account_id,
             model_id=model.id,
             asset_id=model_asset.id,
-            file_size_in_bytes=get_buffer_size(file_buffer),
+            file_size_in_bytes=self._file_utils.get_buffer_size(file_buffer),
         )
         socket_info = await self._file_push_service.allocate_socket_for_asset(token, pairing_request)
         checksum = await SocketClient.write_and_digest(socket_info, file_buffer)
@@ -117,7 +118,7 @@ class ModelUploadManager:
         )
         await self._file_push_service.complete_file_transfer(token, checksum_request)
 
-    async def _wait_for_flags(self, token: Sensitive[str], model: Model):
+    async def _wait_for_flags(self, token: Sensitive[str], model: Model) -> None:
         while True:
             start_time = time.time()
 

@@ -6,12 +6,13 @@ from norman_core.clients.http_client import HttpClient
 from norman_core.services.authenticate import Authenticate
 from norman_objects.services.authenticate.login.api_key_login_request import ApiKeyLoginRequest
 from norman_objects.services.authenticate.signup.signup_key_request import SignupKeyRequest
+from norman_objects.services.authenticate.signup.signup_key_response import SignupKeyResponse
 from norman_objects.shared.security.sensitive import Sensitive
 from norman_utils_external.singleton import Singleton
 
 
 class AuthenticationManager(metaclass=Singleton):
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str) -> None:
         self._api_key = api_key
         self._account_id = None
         self._access_token: Optional[Sensitive[str]] = None
@@ -21,17 +22,17 @@ class AuthenticationManager(metaclass=Singleton):
         self._http_client = HttpClient()
 
     @property
-    def access_token(self):
+    def access_token(self) -> Sensitive[str]:
         if self._access_token is None:
             raise ValueError("Access token is not available — you may need to log in first.")
         return self._access_token
 
     @property
-    def account_id(self):
+    def account_id(self) -> Optional[str]:
         return self._account_id
 
     @property
-    def access_token_expired(self):
+    def access_token_expired(self) -> bool:
         if self._access_token is None:
             return True
         try:
@@ -42,7 +43,7 @@ class AuthenticationManager(metaclass=Singleton):
         except Exception:
             return True
 
-    async def login_internal(self):
+    async def login_internal(self) -> None:
         async with self._http_client:
             if self._api_key is not None and self._api_key != "":
                 request = ApiKeyLoginRequest(api_key=Sensitive(self._api_key))
@@ -55,13 +56,13 @@ class AuthenticationManager(metaclass=Singleton):
             self._id_token = login_response.id_token
 
     @staticmethod
-    async def signup_and_generate_key(username: str):
+    async def signup_and_generate_key(username: str) -> SignupKeyResponse:
         async with HttpClient():
             authentication_service = Authenticate()
             signup_request = SignupKeyRequest(name=username)
             response = await authentication_service.signup.signup_and_generate_key(signup_request)
             return response
 
-    async def invalidate_access_token(self):
+    async def invalidate_access_token(self) -> None:
         if self.access_token_expired:
             await self.login_internal()

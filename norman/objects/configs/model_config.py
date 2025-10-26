@@ -1,6 +1,6 @@
 import random
 import string
-from typing import List
+from typing import List, Dict, Any
 
 from norman_objects.shared.model_signatures.model_signature import ModelSignature
 from norman_objects.shared.model_signatures.signature_type import SignatureType
@@ -33,7 +33,7 @@ class ModelConfig(BaseModel):
 
     # Inject account_id from AuthenticationManager into all assets
     @model_validator(mode="before")
-    def inject_account_id(cls, values):
+    def inject_account_id(cls, values)  -> Dict[str, Any]:
         if "assets" in values and isinstance(values["assets"], list):
             auth_manager = AuthenticationManager()
             account_id = getattr(auth_manager, "account_id", None)
@@ -44,7 +44,7 @@ class ModelConfig(BaseModel):
         return values
 
     @model_validator(mode="before")
-    def generate_version_label(cls, values):
+    def generate_version_label(cls, values) -> Dict[str, Any]:
         if 'version_label' not in values or not values['version_label']:
             # Generate a random 6-character string with letters (a-z, A-Z) and numbers (1-9)
             version_label = ''.join(random.choices(string.ascii_letters + '123456789', k=6))
@@ -54,7 +54,7 @@ class ModelConfig(BaseModel):
     # Inject signature_type automatically
     @field_validator("inputs", mode="before")
     @classmethod
-    def set_input_signature_type(cls, inputs):
+    def set_input_signature_type(cls, inputs) -> Any:
         if isinstance(inputs, list):
             for input in inputs:
                 # Only set if missing, to avoid overwriting valid values
@@ -64,7 +64,7 @@ class ModelConfig(BaseModel):
 
     @field_validator("outputs", mode="before")
     @classmethod
-    def set_output_signature_type(cls, outputs):
+    def set_output_signature_type(cls, outputs) -> Any:
         if isinstance(outputs, list):
             for output in outputs:
                 if "signature_type" not in output:

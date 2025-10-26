@@ -1,3 +1,4 @@
+from collections.abc import dict_keys, dict_values, dict_items
 from typing import Any
 
 
@@ -14,11 +15,11 @@ class InvocationResult:
             result[key] = await handle.json()
         return result
 
-    def keys(self):
+    def keys(self) -> dict_keys[str, Any]:
         return self._outputs.keys()
 
-    def values(self):
+    def values(self) -> dict_values[str, Any]:
         return self._outputs.values()
 
-    def items(self):
+    def items(self) -> dict_items[str, Any]:
         return self._outputs.items()

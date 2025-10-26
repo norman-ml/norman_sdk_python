@@ -1,7 +1,9 @@
+from typing import Any
+
 from norman_core.clients.http_client import HttpClient
 
 class InvocationOutputHandle:
-    def __init__(self, stream):
+    def __init__(self, stream) -> None:
         self._http_client = HttpClient()
         self._stream = stream
 
@@ -12,6 +14,6 @@ class InvocationOutputHandle:
         await self._http_client.close()
         return bytes_result
 
-    def stream(self):
+    def stream(self) -> Any:
         self._http_client.close()
         return self._stream
