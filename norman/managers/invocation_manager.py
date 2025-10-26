@@ -25,6 +25,8 @@ from norman_utils_external.streaming_utils import AsyncBufferedReader, BufferedR
 from norman._app_config import NormanAppConfig
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation_config import InvocationConfig
+from norman.objects.configs.invocation_output_handle import InvocationOutputHandle
+from norman.objects.configs.invocation_result import InvocationResult
 
 
 class InvocationManager:
@@ -37,15 +39,15 @@ class InvocationManager:
         self._persist_service = Persist()
         self._retrieve_service = Retrieve()
 
-    async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, bytearray]:
+    async def invoke(self, invocation_config: dict[str, Any]) -> InvocationResult:
         invocation_config = InvocationConfig.model_validate(invocation_config)
         await self._authentication_manager.invalidate_access_token()
 
-        async with self._http_client:
-            invocation = await self._create_invocation_in_database(self._authentication_manager.access_token, invocation_config)
-            await self._upload_inputs(self._authentication_manager.access_token, invocation, invocation_config)
-            await self._wait_for_flags(self._authentication_manager.access_token, invocation)
-            return await self._get_results(self._authentication_manager.access_token, invocation)
+        await self._http_client.open()
+        invocation = await self._create_invocation_in_database(self._authentication_manager.access_token, invocation_config)
+        await self._upload_inputs(self._authentication_manager.access_token, invocation, invocation_config)
+        await self._wait_for_flags(self._authentication_manager.access_token, invocation)
+        return await self._get_results(self._authentication_manager.access_token, invocation)
 
     async def _create_invocation_in_database(self, token: Sensitive[str], invocation_config: InvocationConfig):
         invocations = await self._persist_service.invocations.create_invocations_by_model_names(token=token, model_name_counter={invocation_config.model_name: 1})
@@ -106,30 +108,25 @@ class InvocationManager:
             if wait_time > 0:
                 await asyncio.sleep(wait_time)
 
-    async def _get_results(self, token: Sensitive[str], invocation: Invocation) -> dict[str, bytearray]:
-        output_tasks = []
+    async def _get_results(self, token: Sensitive[str], invocation: Invocation) -> "InvocationResult":
+        output_handles = {}
+
         for output in invocation.outputs:
-            task = self._get_output_results(token, invocation, output.id)
-            output_tasks.append(task)
+            task = self._get_output_results(token, invocation, output)
+            output_handles[output.display_title] = await task
 
-        results: list[bytearray] = await asyncio.gather(*output_tasks)
-        return {
-            output.display_title: result
-            for output, result in zip(invocation.outputs, results)
-        }
+        return InvocationResult(output_handles)
 
-    async def _get_output_results(self, token: Sensitive[str], invocation: Invocation, output_id: str) -> bytearray:
+    async def _get_output_results(self, token: Sensitive[str], invocation: Invocation, output: InvocationSignature):
         account_id = invocation.account_id
         model_id = invocation.model_id
         invocation_id = invocation.id
 
-        headers, stream = await self._retrieve_service.get_invocation_output(token, account_id, model_id, invocation_id, output_id)
+        headers, stream = await self._retrieve_service.get_invocation_output(
+            token, account_id, model_id, invocation_id, output.id
+        )
 
-        results = bytearray()
-        async for chunk in stream:
-            results.extend(chunk)
-
-        return results
+        return InvocationOutputHandle(stream)
 
     async def _upload_primitive(self, token: Sensitive[str], input: InvocationSignature, data: Any):
         buffer = io.BytesIO()
