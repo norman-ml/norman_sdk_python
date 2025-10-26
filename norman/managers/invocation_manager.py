@@ -1,17 +1,13 @@
 import asyncio
-import io
 import time
-from typing import Any, Union
+from typing import Any
 
-import aiofiles
 from norman_core.clients.http_client import HttpClient
-from norman_core.clients.socket_client import SocketClient
 from norman_core.services.file_pull.file_pull import FilePull
 from norman_core.services.file_push.file_push import FilePush
 from norman_core.services.persist import Persist
 from norman_core.services.retrieve.retrieve import Retrieve
 from norman_objects.services.file_pull.requests.input_download_request import InputDownloadRequest
-from norman_objects.services.file_push.checksum.checksum_request import ChecksumRequest
 from norman_objects.services.file_push.pairing.socket_input_pairing_request import SocketInputPairingRequest
 from norman_objects.shared.invocation_signatures.invocation_signature import InvocationSignature
 from norman_objects.shared.invocations.invocation import Invocation
@@ -19,10 +15,9 @@ from norman_objects.shared.queries.query_constraints import QueryConstraints
 from norman_objects.shared.security.sensitive import Sensitive
 from norman_objects.shared.status_flags.status_flag import StatusFlag
 from norman_objects.shared.status_flags.status_flag_value import StatusFlagValue
-from norman_utils_external.get_buffer_size import get_buffer_size
-from norman_utils_external.streaming_utils import AsyncBufferedReader, BufferedReader
 
 from norman._app_config import NormanAppConfig
+from norman.helpers.file_transfer_manager import FileTransferManager
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation_config import InvocationConfig
 from norman.objects.configs.invocation_output_handle import InvocationOutputHandle
@@ -36,6 +31,7 @@ class InvocationManager:
 
         self._file_pull_service = FilePull()
         self._file_push_service = FilePush()
+        self._file_transfer = FileTransferManager()
         self._persist_service = Persist()
         self._retrieve_service = Retrieve()
 
@@ -62,16 +58,39 @@ class InvocationManager:
             input_data = input_config.data
 
             if input_source == "Primitive":
-                task = self._upload_primitive(token, input, input_data)
+                task = self._file_transfer.upload_primitive(token, input, input_data)
                 tasks.append(task)
             elif input_source == "File":
-                task = self._upload_file(token, input, input_data)
+                pairing_request = SocketInputPairingRequest(
+                    invocation_id=input.invocation_id,
+                    input_id=input.id,
+                    account_id=input.account_id,
+                    model_id=input.model_id,
+                    file_size_in_bytes=0 # temporary, will be set in file_transfer
+                )
+
+                task = self._file_transfer.upload_file(token, pairing_request, input_data)
                 tasks.append(task)
             elif input_source == "Stream":
-                task = self._upload_buffer(token, input, input_data)
+                pairing_request = SocketInputPairingRequest(
+                    invocation_id=input.invocation_id,
+                    input_id=input.id,
+                    account_id=input.account_id,
+                    model_id=input.model_id,
+                    file_size_in_bytes=0 # temporary, will be set in file_transfer
+                )
+                task = self._file_transfer.upload_buffer(token, pairing_request, input_data)
                 tasks.append(task)
             else:
-                task = self._upload_link(token, input, input_data)
+                download_request = InputDownloadRequest(
+                    signature_id=input.signature_id,
+                    invocation_id=input.invocation_id,
+                    input_id=input.id,
+                    account_id=input.account_id,
+                    model_id=input.model_id,
+                    links=[input_data],
+                )
+                task = self._file_pull_service.submit_input_links(token, download_request)
                 tasks.append(task)
 
         await asyncio.gather(*tasks)
@@ -127,45 +146,3 @@ class InvocationManager:
         )
 
         return InvocationOutputHandle(stream)
-
-    async def _upload_primitive(self, token: Sensitive[str], input: InvocationSignature, data: Any):
-        buffer = io.BytesIO()
-        buffer.write(str(data).encode("utf-8"))
-        buffer.seek(0)
-
-        await self._upload_buffer(token, input, buffer)
-
-    async def _upload_file(self, token: Sensitive[str], input: InvocationSignature, file_path: str):
-        async with aiofiles.open(file_path, mode="rb") as file:
-            await self._upload_buffer(token, input, file)
-
-    async def _upload_buffer(self, token: Sensitive[str], input: InvocationSignature, buffer: Union[AsyncBufferedReader, BufferedReader]):
-        pairing_request = SocketInputPairingRequest(
-            invocation_id=input.invocation_id,
-            input_id=input.id,
-            account_id=input.account_id,
-            model_id=input.model_id,
-            file_size_in_bytes=get_buffer_size(buffer)
-        )
-        request = await self._file_push_service.allocate_socket_for_input(
-            token, pairing_request
-        )
-
-        file_checksum = await SocketClient.write_and_digest(request, buffer)
-
-        checksum_request = ChecksumRequest(
-            pairing_id=request.pairing_id, checksum=file_checksum
-        )
-        await self._file_push_service.complete_file_transfer(token, checksum_request)
-
-    async def _upload_link(self, token: Sensitive[str], input: InvocationSignature, link: str):
-        download_request = InputDownloadRequest(
-            signature_id=input.signature_id,
-            invocation_id=input.invocation_id,
-            input_id=input.id,
-            account_id=input.account_id,
-            model_id=input.model_id,
-            links=[link]
-        )
-        response = await self._file_pull_service.submit_input_links(token, download_request)
-        return response

@@ -20,6 +20,7 @@ from norman_objects.shared.status_flags.status_flag_value import StatusFlagValue
 from norman_utils_external.get_buffer_size import get_buffer_size
 
 from norman._app_config import NormanAppConfig
+from norman.helpers.file_transfer_manager import FileTransferManager
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.model_config import ModelConfig
 
@@ -28,6 +29,7 @@ class ModelUploadManager:
     def __init__(self):
         self._authentication_manager = AuthenticationManager()
         self._http_client = HttpClient()
+        self._file_transfer = FileTransferManager()
 
         self._file_pull_service = FilePull()
         self._file_push_service = FilePush()
@@ -54,19 +56,34 @@ class ModelUploadManager:
 
     async def _upload_assets(self, token: Sensitive[str], model: Model, assets: list[dict[str, Any]]):
         tasks = []
+
         for model_asset in model.assets:
             asset = next(asset for asset in assets if asset["asset_name"] == model_asset.asset_name)
-            asset_source = asset["source"]
-            asset_data = asset["data"]
+            source = asset["source"]
+            data = asset["data"]
 
-            if asset_source == "Link":
-                tasks.append(self._upload_link(token, model, model_asset, asset_data))
-            elif asset_source == "Path":
-                tasks.append(self._upload_file(token, model, model_asset, asset_data))
-            elif asset_source == "Stream":
-                tasks.append(self._upload_buffer(token, model, model_asset, asset_data))
+            if source == "Link":
+                download_request = AssetDownloadRequest(
+                    account_id=model_asset.account_id,
+                    model_id=model_asset.model_id,
+                    asset_id=model_asset.id,
+                    asset_name=model_asset.asset_name,
+                    links=[data],
+                )
+                tasks.append(self._file_pull_service.submit_asset_links(token, download_request))
             else:
-                raise ValueError("Model asset source must be one of link, path, or stream.")
+                pairing_request = SocketAssetPairingRequest(
+                    account_id=model_asset.account_id,
+                    model_id=model_asset.model_id,
+                    asset_id=model_asset.id,
+                    file_size_in_bytes=0  # temporary, will be set in file_transfer
+                )
+                if source == "Path":
+                    tasks.append(self._file_transfer.upload_file(token, pairing_request, data))
+                elif source == "Stream":
+                    tasks.append(self._file_transfer.upload_buffer(token, pairing_request, data))
+                else:
+                    raise ValueError(f"Invalid model asset source: {source}")
 
         await asyncio.gather(*tasks)
 
