@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import Any
 
 import aiofiles
@@ -18,6 +19,7 @@ from norman_objects.shared.status_flags.status_flag import StatusFlag
 from norman_objects.shared.status_flags.status_flag_value import StatusFlagValue
 from norman_utils_external.get_buffer_size import get_buffer_size
 
+from norman._app_config import NormanAppConfig
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.model_config import ModelConfig
 
@@ -100,6 +102,8 @@ class ModelUploadManager:
 
     async def _wait_for_flags(self, token: Sensitive[str], model: Model):
         while True:
+            start_time = time.time()
+
             model_flag_constraints = QueryConstraints.equals("Status_Flags", "Entity_ID", model.id)
             asset_flag_constraints = QueryConstraints.includes("Status_Flags", "Entity_ID", [asset.id for asset in model.assets])
 
@@ -117,4 +121,9 @@ class ModelUploadManager:
             all_finished = all(flag.flag_value == StatusFlagValue.Finished for flag in all_model_flags)
             if all_finished:
                 break
-            await asyncio.sleep(5)
+
+        elapsed = time.time() - start_time
+        wait_time = NormanAppConfig.get_flags_interval - elapsed
+
+        if wait_time > 0:
+            await asyncio.sleep(wait_time)

@@ -4,9 +4,7 @@ from typing import Optional
 import jwt
 from norman_core.clients.http_client import HttpClient
 from norman_core.services.authenticate import Authenticate
-from norman_objects.services.authenticate.login.account_id_password_login_request import AccountIDPasswordLoginRequest
 from norman_objects.services.authenticate.login.api_key_login_request import ApiKeyLoginRequest
-from norman_objects.services.authenticate.register.register_auth_factor_request import RegisterAuthFactorRequest
 from norman_objects.services.authenticate.signup.signup_key_request import SignupKeyRequest
 from norman_objects.shared.security.sensitive import Sensitive
 from norman_utils_external.singleton import Singleton
@@ -23,11 +21,17 @@ class AuthenticationManager(metaclass=Singleton):
         self._http_client = HttpClient()
 
     @property
-    def account_id(self) -> Optional[str]:
+    def access_token(self):
+        if self._access_token is None:
+            raise ValueError("Access token is not available — you may need to log in first.")
+        return self._access_token
+
+    @property
+    def account_id(self):
         return self._account_id
 
     @property
-    def access_token_expired(self) -> bool:
+    def access_token_expired(self):
         if self._access_token is None:
             return True
         try:

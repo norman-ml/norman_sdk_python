@@ -1,5 +1,6 @@
 import asyncio
 import io
+import time
 from typing import Any, Union
 
 import aiofiles
@@ -21,6 +22,7 @@ from norman_objects.shared.status_flags.status_flag_value import StatusFlagValue
 from norman_utils_external.get_buffer_size import get_buffer_size
 from norman_utils_external.streaming_utils import AsyncBufferedReader, BufferedReader
 
+from norman._app_config import NormanAppConfig
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation_config import InvocationConfig
 
@@ -73,9 +75,15 @@ class InvocationManager:
         await asyncio.gather(*tasks)
 
     async def _wait_for_flags(self, token: Sensitive[str], invocation: Invocation):
+        entity_ids = [invocation.id]
+        entity_ids.extend([input.id for input in invocation.inputs])
+        entity_ids.extend([output.id for output in invocation.outputs])
+        flag_constraints = QueryConstraints.includes("Status_Flags", "Entity_ID", entity_ids)
+
         while True:
-            invocation_constraints = QueryConstraints.equals("Status_Flags", "Entity_ID", invocation.id)
-            results = await self._persist_service.status_flags.get_status_flags(token, invocation_constraints)
+            start_time = time.time()
+
+            results = await self._persist_service.status_flags.get_status_flags(token, flag_constraints)
             if len(results) == 0:
                 raise ValueError(f"Invocation {invocation.id} has no flags")
 
@@ -88,10 +96,15 @@ class InvocationManager:
 
             if any_failed:
                 raise ValueError(f"Invocation {invocation.id} has failed")
+
             if all_finished:
                 break
 
-            await asyncio.sleep(1)
+            elapsed = time.time() - start_time
+            wait_time = NormanAppConfig.get_flags_interval - elapsed
+
+            if wait_time > 0:
+                await asyncio.sleep(wait_time)
 
     async def _get_results(self, token: Sensitive[str], invocation: Invocation) -> dict[str, bytearray]:
         output_tasks = []
