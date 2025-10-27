@@ -13,13 +13,13 @@ from norman_utils_external.singleton import Singleton
 
 class AuthenticationManager(metaclass=Singleton):
     def __init__(self, api_key: str) -> None:
+        self._authentication_service = Authenticate()
+        self._http_client = HttpClient()
+
         self._api_key = api_key
         self._account_id = None
         self._access_token: Optional[Sensitive[str]] = None
         self._id_token: Optional[Sensitive[str]] = None
-
-        self._authentication_service = Authenticate()
-        self._http_client = HttpClient()
 
     @property
     def access_token(self) -> Sensitive[str]:
@@ -31,19 +31,26 @@ class AuthenticationManager(metaclass=Singleton):
     def account_id(self) -> Optional[str]:
         return self._account_id
 
-    @property
     def access_token_expired(self) -> bool:
         if self._access_token is None:
             return True
         try:
-            decoded = jwt.decode(self._access_token.value(), options={"verify_signature": False})
+            decoded = jwt.decode(self._access_token.value(), options={"verify_signature": False}) # we will add a jwks store to verify against in the near future.
             exp = decoded["exp"]
             now = datetime.now(timezone.utc).timestamp()
             return exp < now
         except Exception:
             return True
 
-    async def login_internal(self) -> None:
+    @staticmethod
+    async def signup_and_generate_key(username: str) -> SignupKeyResponse:
+        async with HttpClient():
+            authentication_service = Authenticate()
+            signup_request = SignupKeyRequest(name=username)
+            response = await authentication_service.signup.signup_and_generate_key(signup_request)
+            return response
+
+    async def _login_with_api_key(self) -> None:
         async with self._http_client:
             if self._api_key is not None and self._api_key != "":
                 request = ApiKeyLoginRequest(api_key=Sensitive(self._api_key))
@@ -55,14 +62,6 @@ class AuthenticationManager(metaclass=Singleton):
             self._access_token = login_response.access_token
             self._id_token = login_response.id_token
 
-    @staticmethod
-    async def signup_and_generate_key(username: str) -> SignupKeyResponse:
-        async with HttpClient():
-            authentication_service = Authenticate()
-            signup_request = SignupKeyRequest(name=username)
-            response = await authentication_service.signup.signup_and_generate_key(signup_request)
-            return response
-
     async def invalidate_access_token(self) -> None:
         if self.access_token_expired:
-            await self.login_internal()
+            await self._login_with_api_key()

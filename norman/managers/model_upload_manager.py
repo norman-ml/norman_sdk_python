@@ -1,5 +1,4 @@
 import asyncio
-import time
 from typing import Any
 
 import aiofiles
@@ -13,16 +12,13 @@ from norman_objects.services.file_push.checksum.checksum_request import Checksum
 from norman_objects.services.file_push.pairing.socket_asset_pairing_request import SocketAssetPairingRequest
 from norman_objects.shared.models.model import Model
 from norman_objects.shared.models.model_asset import ModelAsset
-from norman_objects.shared.queries.query_constraints import QueryConstraints
 from norman_objects.shared.security.sensitive import Sensitive
-from norman_objects.shared.status_flags.status_flag import StatusFlag
-from norman_objects.shared.status_flags.status_flag_value import StatusFlagValue
+from norman_utils_external.file_utils import FileUtils
 
-from norman._app_config import NormanAppConfig
 from norman.helpers.file_transfer_manager import FileTransferManager
+from norman.helpers.flag_helper import FlagHelper
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.model_config import ModelConfig
-from norman_utils_external.file_utils import FileUtils
 
 
 class ModelUploadManager:
@@ -34,6 +30,7 @@ class ModelUploadManager:
         self._file_pull_service = FilePull()
         self._file_push_service = FilePush()
         self._file_utils = FileUtils()
+        self._flag_helper = FlagHelper()
         self._persist_service = Persist()
 
     async def upload_model(self, model_config_dict: dict[str, Any]) -> Model:
@@ -56,37 +53,53 @@ class ModelUploadManager:
         return next(iter(response.values()))
 
     async def _upload_assets(self, token: Sensitive[str], model: Model, assets: list[dict[str, Any]]) -> None:
-        tasks = []
-
-        for model_asset in model.assets:
-            asset = next(asset for asset in assets if asset["asset_name"] == model_asset.asset_name)
-            source = asset["source"]
-            data = asset["data"]
-
-            if source == "Link":
-                download_request = AssetDownloadRequest(
-                    account_id=model_asset.account_id,
-                    model_id=model_asset.model_id,
-                    asset_id=model_asset.id,
-                    asset_name=model_asset.asset_name,
-                    links=[data],
-                )
-                tasks.append(self._file_pull_service.submit_asset_links(token, download_request))
-            else:
-                pairing_request = SocketAssetPairingRequest(
-                    account_id=model_asset.account_id,
-                    model_id=model_asset.model_id,
-                    asset_id=model_asset.id,
-                    file_size_in_bytes=0  # temporary, will be set in file_transfer
-                )
-                if source == "Path":
-                    tasks.append(self._file_transfer.upload_file(token, pairing_request, data))
-                elif source == "Stream":
-                    tasks.append(self._file_transfer.upload_buffer(token, pairing_request, data))
-                else:
-                    raise ValueError(f"Invalid model asset source: {source}")
-
+        tasks = [
+            self._handle_asset(token, model_asset, assets)
+            for model_asset in model.assets
+        ]
         await asyncio.gather(*tasks)
+
+    async def _handle_asset(self, token: Sensitive[str], model_asset: ModelAsset, assets: list[dict[str, Any]]) -> None:
+        asset = next(asset for asset in assets if asset["asset_name"] == model_asset.asset_name)
+        source = asset["source"]
+        data = asset["data"]
+
+        if source == "Link":
+            await self._handle_link_asset(token, model_asset, data)
+        elif source == "Path":
+            await self._handle_file_asset(token, model_asset, data)
+        elif source == "Stream":
+            await self._handle_stream_asset(token, model_asset, data)
+        else:
+            raise ValueError(f"Invalid model asset source: {source}")
+
+    async def _handle_link_asset(self, token: Sensitive[str], model_asset: ModelAsset, data: str) -> None:
+        download_request = AssetDownloadRequest(
+            account_id=model_asset.account_id,
+            model_id=model_asset.model_id,
+            asset_id=model_asset.id,
+            asset_name=model_asset.asset_name,
+            links=[data],
+        )
+        await self._file_pull_service.submit_asset_links(token, download_request)
+
+    async def _handle_file_asset(self, token: Sensitive[str], model_asset: ModelAsset, path: str) -> None:
+        pairing_request = SocketAssetPairingRequest(
+            account_id=model_asset.account_id,
+            model_id=model_asset.model_id,
+            asset_id=model_asset.id,
+            file_size_in_bytes=0  # temporary, updated in file_transfer
+        )
+        await self._file_transfer.upload_file(token, pairing_request, path)
+
+    async def _handle_stream_asset(self, token: Sensitive[str], model_asset: ModelAsset, stream: Any) -> None:
+        pairing_request = SocketAssetPairingRequest(
+            account_id=model_asset.account_id,
+            model_id=model_asset.model_id,
+            asset_id=model_asset.id,
+            file_size_in_bytes=0  # temporary, updated in file_transfer
+        )
+        await self._file_transfer.upload_from_buffer(token, pairing_request, stream)
 
     async def _upload_link(self, token: Sensitive[str], model: Model, model_asset: ModelAsset, link: str) -> list[str]:
         download_request = AssetDownloadRequest(
@@ -119,29 +132,5 @@ class ModelUploadManager:
         await self._file_push_service.complete_file_transfer(token, checksum_request)
 
     async def _wait_for_flags(self, token: Sensitive[str], model: Model) -> None:
-        while True:
-            start_time = time.time()
-
-            model_flag_constraints = QueryConstraints.equals("Status_Flags", "Entity_ID", model.id)
-            asset_flag_constraints = QueryConstraints.includes("Status_Flags", "Entity_ID", [asset.id for asset in model.assets])
-
-            model_flag_task = self._persist_service.status_flags.get_status_flags(token, model_flag_constraints)
-            asset_flag_task = self._persist_service.status_flags.get_status_flags(token, asset_flag_constraints)
-
-            results = await asyncio.gather(model_flag_task, asset_flag_task)
-
-            all_model_flags: list[StatusFlag] = [flag for flag_result in results for flag_list in flag_result.values() for flag in flag_list]
-
-            failed_flags = [flag for flag in all_model_flags if flag.flag_value == StatusFlagValue.Error]
-            if len(failed_flags) > 0:
-                raise Exception("Failed to upload model", failed_flags)
-
-            all_finished = all(flag.flag_value == StatusFlagValue.Finished for flag in all_model_flags)
-            if all_finished:
-                break
-
-        elapsed = time.time() - start_time
-        wait_time = NormanAppConfig.get_flags_interval - elapsed
-
-        if wait_time > 0:
-            await asyncio.sleep(wait_time)
+        entity_ids = [model.id] + [asset.id for asset in model.assets]
+        await self._flag_helper.wait_for_entities(token, entity_ids)

@@ -1,2 +1,2 @@
 class NormanAppConfig:
-    get_flags_interval = 2.5
+    get_flags_interval = 4
