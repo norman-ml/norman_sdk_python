@@ -15,6 +15,7 @@ from norman.helpers.file_transfer_manager import FileTransferManager
 from norman.helpers.flag_helper import FlagHelper
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation_config import InvocationConfig
+from norman.objects.factories.invocation_config_factory import InvocationConfigFactory
 from norman.objects.handles.invocation_output_handle import InvocationOutputHandle
 
 
@@ -32,6 +33,8 @@ class InvocationManager:
 
     async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, Any]:
         invocation_config = InvocationConfig.model_validate(invocation_config)
+        invocation_config = InvocationConfigFactory.create(invocation_config)
+
         await self._authentication_manager.invalidate_access_token()
 
         async with self._http_client:
@@ -46,10 +49,12 @@ class InvocationManager:
         return invocations[0]
 
     async def _upload_inputs(self, token: Sensitive[str], invocation: Invocation, invocation_config: InvocationConfig) -> None:
-        tasks = [
-            self._handle_input(token, input, invocation_config.inputs[input.display_title])
-            for input in invocation.inputs
-        ]
+        tasks = []
+
+        for input in invocation.inputs:
+            input_config = next((config for config in invocation_config.inputs if config.display_title == input.display_title),None)
+            tasks.append(self._handle_input(token, input, input_config))
+
         await asyncio.gather(*tasks)
 
     async def _handle_input(self, token: Sensitive[str], input, input_config) -> None:

@@ -1,5 +1,4 @@
-from typing import Dict
-
+from typing import List
 from pydantic import BaseModel, Field
 
 from norman.objects.configs.invocation_input_config import InvocationInputConfig
@@ -7,4 +6,4 @@ from norman.objects.configs.invocation_input_config import InvocationInputConfig
 
 class InvocationConfig(BaseModel):
     model_name: str = Field(..., description="Name of the model to invoke")
-    inputs: Dict[str, InvocationInputConfig] = Field(..., description="Mapping of input keys to ModelInput definitions")
+    inputs: List[InvocationInputConfig] = Field(..., description="List of model input configurations")
