@@ -8,7 +8,6 @@ from norman_core.services.persist import Persist
 from norman_core.services.retrieve.retrieve import Retrieve
 from norman_objects.services.file_pull.requests.input_download_request import InputDownloadRequest
 from norman_objects.services.file_push.pairing.socket_input_pairing_request import SocketInputPairingRequest
-from norman_objects.shared.invocation_signatures.invocation_signature import InvocationSignature
 from norman_objects.shared.invocations.invocation import Invocation
 from norman_objects.shared.security.sensitive import Sensitive
 
@@ -16,7 +15,6 @@ from norman.helpers.file_transfer_manager import FileTransferManager
 from norman.helpers.flag_helper import FlagHelper
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation_config import InvocationConfig
-from norman.objects.configs.invocation_result import InvocationResult
 from norman.objects.handles.invocation_output_handle import InvocationOutputHandle
 
 
@@ -32,15 +30,16 @@ class InvocationManager:
         self._persist_service = Persist()
         self._retrieve_service = Retrieve()
 
-    async def invoke(self, invocation_config: dict[str, Any]) -> InvocationResult:
+    async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, Any]:
         invocation_config = InvocationConfig.model_validate(invocation_config)
         await self._authentication_manager.invalidate_access_token()
 
-        await self._http_client.open()
-        invocation = await self._create_invocation_in_database(self._authentication_manager.access_token, invocation_config)
-        await self._upload_inputs(self._authentication_manager.access_token, invocation, invocation_config)
-        await self._wait_for_flags(self._authentication_manager.access_token, invocation)
-        return await self._get_results(self._authentication_manager.access_token, invocation)
+        async with self._http_client:
+            invocation = await self._create_invocation_in_database(self._authentication_manager.access_token, invocation_config)
+            await self._upload_inputs(self._authentication_manager.access_token, invocation, invocation_config)
+            await self._wait_for_flags(self._authentication_manager.access_token, invocation)
+            results = await self._get_results(self._authentication_manager.access_token, invocation)
+        return results
 
     async def _create_invocation_in_database(self, token: Sensitive[str], invocation_config: InvocationConfig) -> Invocation:
         invocations = await self._persist_service.invocations.create_invocations_by_model_names(token=token, model_name_counter={invocation_config.model_name: 1})
@@ -108,22 +107,10 @@ class InvocationManager:
         entity_ids.extend([output.id for output in invocation.outputs])
         await self._flag_helper.wait_for_entities(token, entity_ids)
 
-    async def _get_results(self, token: Sensitive[str], invocation: Invocation) -> "InvocationResult":
+    async def _get_results(self, token: Sensitive[str], invocation: Invocation) -> dict[str, Any]:
         output_handles = {}
 
         for output in invocation.outputs:
-            task = self._get_output_results(token, invocation, output)
-            output_handles[output.display_title] = await task
+            output_handles[output.display_title] = InvocationOutputHandle(token, invocation.account_id, invocation.model_id, invocation.id, output.id)
 
-        return InvocationResult(output_handles)
-
-    async def _get_output_results(self, token: Sensitive[str], invocation: Invocation, output: InvocationSignature) -> InvocationOutputHandle:
-        account_id = invocation.account_id
-        model_id = invocation.model_id
-        invocation_id = invocation.id
-
-        headers, stream = await self._retrieve_service.get_invocation_output(
-            token, account_id, model_id, invocation_id, output.id
-        )
-
-        return InvocationOutputHandle(stream)
+        return output_handles

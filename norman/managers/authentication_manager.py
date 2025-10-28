@@ -45,7 +45,7 @@ class AuthenticationManager(metaclass=Singleton):
     @staticmethod
     async def signup_and_generate_key(username: str) -> SignupKeyResponse:
         async with HttpClient():
-            authentication_service = Authenticate()
+            authentication_service = Authenticate() # because signup_and_generate_key is static
             signup_request = SignupKeyRequest(name=username)
             response = await authentication_service.signup.signup_and_generate_key(signup_request)
             return response
