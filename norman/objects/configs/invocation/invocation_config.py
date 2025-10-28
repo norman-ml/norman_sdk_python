@@ -1,7 +1,7 @@
 from typing import List
 from pydantic import BaseModel, Field
 
-from norman.objects.configs.invocation_input_config import InvocationInputConfig
+from norman.objects.configs.invocation.invocation_input_config import InvocationInputConfig
 
 
 class InvocationConfig(BaseModel):

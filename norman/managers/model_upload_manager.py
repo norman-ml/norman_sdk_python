@@ -17,8 +17,11 @@ from norman_utils_external.file_utils import FileUtils
 
 from norman.helpers.file_transfer_manager import FileTransferManager
 from norman.helpers.flag_helper import FlagHelper
+from norman.helpers.input_source_resolver import InputSourceResolver
 from norman.managers.authentication_manager import AuthenticationManager
-from norman.objects.configs.model_config import ModelConfig
+from norman.objects.configs.model.model_config import ModelConfig
+from norman.objects.factories.model_factory import ModelFactory
+from norman.objects.configs.model.asset_config import AssetConfig
 
 
 class ModelUploadManager:
@@ -36,12 +39,11 @@ class ModelUploadManager:
     async def upload_model(self, model_config_dict: dict[str, Any]) -> Model:
         await self._authentication_manager.invalidate_access_token()
         model_config = ModelConfig.model_validate(model_config_dict)
-        
-        async with self._http_client:
-            model = Model(account_id=self._authentication_manager.account_id, **model_config.model_dump())
+        model = ModelFactory.create(model_config)
 
+        async with self._http_client:
             model = await self._create_model_in_persist(self._authentication_manager.access_token, model)
-            await self._upload_assets(self._authentication_manager.access_token, model, model_config_dict["assets"])
+            await self._upload_assets(self._authentication_manager.access_token, model, model_config.assets)
             await self._wait_for_flags(self._authentication_manager.access_token, model)
             return model
 
@@ -52,21 +54,21 @@ class ModelUploadManager:
             raise ValueError("Failed to create model")
         return next(iter(response.values()))
 
-    async def _upload_assets(self, token: Sensitive[str], model: Model, assets: list[dict[str, Any]]) -> None:
+    async def _upload_assets(self, token: Sensitive[str], model: Model, assets: list[ModelConfig]) -> None:
         tasks = [
             self._handle_asset(token, model_asset, assets)
             for model_asset in model.assets
         ]
         await asyncio.gather(*tasks)
 
-    async def _handle_asset(self, token: Sensitive[str], model_asset: ModelAsset, assets: list[dict[str, Any]]) -> None:
-        asset = next(asset for asset in assets if asset["asset_name"] == model_asset.asset_name)
-        source = asset["source"]
-        data = asset["data"]
+    async def _handle_asset(self, token: Sensitive[str], model_asset: ModelAsset, assets: list[AssetConfig]) -> None:
+        asset = next(asset for asset in assets if asset.asset_name == model_asset.asset_name)
+        data = asset.data
+        source = InputSourceResolver.resolve(data)
 
         if source == "Link":
             await self._handle_link_asset(token, model_asset, data)
-        elif source == "Path":
+        elif source == "File":
             await self._handle_file_asset(token, model_asset, data)
         elif source == "Stream":
             await self._handle_stream_asset(token, model_asset, data)

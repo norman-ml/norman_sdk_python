@@ -14,7 +14,7 @@ from norman_objects.shared.security.sensitive import Sensitive
 from norman.helpers.file_transfer_manager import FileTransferManager
 from norman.helpers.flag_helper import FlagHelper
 from norman.managers.authentication_manager import AuthenticationManager
-from norman.objects.configs.invocation_config import InvocationConfig
+from norman.objects.configs.invocation.invocation_config import InvocationConfig
 from norman.objects.factories.invocation_config_factory import InvocationConfigFactory
 from norman.objects.handles.invocation_output_handle import InvocationOutputHandle
 
