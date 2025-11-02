@@ -15,17 +15,6 @@ class InvocationOutputHandle:
 
         self._http_client = HttpClient()
 
-    async def _get_output_results_stream(self):
-        headers, stream = await self._retrieve_service.get_invocation_output(
-            self._token,
-            self._account_id,
-            self._model_id,
-            self._invocation_id,
-            self._output_id
-        )
-
-        return stream
-
     async def bytes(self) -> bytes:
         bytes_result = bytearray()
         async with self._http_client:
@@ -37,4 +26,15 @@ class InvocationOutputHandle:
     async def stream(self) -> Any:
         async with self._http_client:
             stream = await self._get_output_results_stream()
+        return stream
+
+    async def _get_output_results_stream(self):
+        headers, stream = await self._retrieve_service.get_invocation_output(
+            self._token,
+            self._account_id,
+            self._model_id,
+            self._invocation_id,
+            self._output_id
+        )
+
         return stream

@@ -13,4 +13,5 @@ class AssetFactory(metaclass=Singleton):
             account_id=AuthenticationManager().account_id,
             asset_name=asset_config.asset_name,
         )
+
         return asset

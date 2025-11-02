@@ -32,10 +32,8 @@ class InvocationManager:
         self._retrieve_service = Retrieve()
 
     async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, Any]:
-        invocation_config = InvocationConfig.model_validate(invocation_config)
-        invocation_config = InvocationConfigFactory.create(invocation_config)
-
         await self._authentication_manager.invalidate_access_token()
+        invocation_config = InvocationConfigFactory.create(invocation_config)
 
         async with self._http_client:
             invocation = await self._create_invocation_in_database(self._authentication_manager.access_token, invocation_config)

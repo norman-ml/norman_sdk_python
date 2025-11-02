@@ -1,3 +1,5 @@
+from typing import Any
+
 from norman_objects.shared.model_signatures.signature_type import SignatureType
 from norman_objects.shared.models.model import Model
 from norman_utils_external.singleton import Singleton
@@ -15,13 +17,13 @@ from norman_objects.shared.models.model_hosting_location import ModelHostingLoca
 class ModelFactory(metaclass=Singleton):
 
     @staticmethod
-    def create(model_config: ModelConfig) -> Model:
-        # Hosting location
+    def create(model_config: dict[str, Any]) -> Model:
+        model_config = ModelConfig.model_validate(model_config)
+
         hosting_location = model_config.hosting_location
         if hosting_location is None:
             hosting_location = ModelHostingLocation.Internal
 
-        # URL validation
         if hosting_location == ModelHostingLocation.External:
             if model_config.url is None:
                 raise ValueError("External models must define a 'url' field in ModelConfig.")
@@ -29,7 +31,6 @@ class ModelFactory(metaclass=Singleton):
         else:
             url = ""
 
-        # Optional fields with explicit defaults
         if model_config.model_class is None:
             model_class = ""
         else:
@@ -50,7 +51,6 @@ class ModelFactory(metaclass=Singleton):
         else:
             request_type = model_config.request_type
 
-        # Build components
         inputs = [SignatureFactory.create(signature, SignatureType.Input) for signature in model_config.inputs]
         outputs = [SignatureFactory.create(signature, SignatureType.Output) for signature in model_config.outputs]
         assets = [AssetFactory.create(asset) for asset in model_config.assets]

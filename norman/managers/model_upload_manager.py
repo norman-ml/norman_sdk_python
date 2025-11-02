@@ -36,9 +36,8 @@ class ModelUploadManager:
         self._flag_helper = FlagHelper()
         self._persist_service = Persist()
 
-    async def upload_model(self, model_config_dict: dict[str, Any]) -> Model:
+    async def upload_model(self, model_config: dict[str, Any]) -> Model:
         await self._authentication_manager.invalidate_access_token()
-        model_config = ModelConfig.model_validate(model_config_dict)
         model = ModelFactory.create(model_config)
 
         async with self._http_client:

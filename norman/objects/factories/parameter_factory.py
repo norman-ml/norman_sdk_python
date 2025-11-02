@@ -15,4 +15,5 @@ class ParameterFactory(metaclass=Singleton):
             parameter_name=parameter_config.parameter_name,
             data_modality=modality
         )
+
         return model_param
