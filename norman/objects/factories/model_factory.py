@@ -20,6 +20,11 @@ class ModelFactory(metaclass=Singleton):
     def create(model_config: dict[str, Any]) -> Model:
         model_config = ModelConfig.model_validate(model_config)
 
+        if model_config.model_class is None:
+            model_class = ""
+        else:
+            model_class = model_config.model_class
+
         hosting_location = model_config.hosting_location
         if hosting_location is None:
             hosting_location = ModelHostingLocation.Internal
@@ -31,10 +36,10 @@ class ModelFactory(metaclass=Singleton):
         else:
             url = ""
 
-        if model_config.model_class is None:
-            model_class = ""
+        if model_config.request_type is None:
+            request_type = HttpRequestType.Post
         else:
-            model_class = model_config.model_class
+            request_type = model_config.request_type
 
         if model_config.output_format is None:
             output_format = OutputFormat.Json
@@ -45,11 +50,6 @@ class ModelFactory(metaclass=Singleton):
             model_type = ModelType.Pytorch_jit
         else:
             model_type = model_config.model_type
-
-        if model_config.request_type is None:
-            request_type = HttpRequestType.Post
-        else:
-            request_type = model_config.request_type
 
         inputs = [SignatureFactory.create(signature, SignatureType.Input) for signature in model_config.inputs]
         outputs = [SignatureFactory.create(signature, SignatureType.Output) for signature in model_config.outputs]

@@ -1,7 +1,8 @@
 import os
-import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
+
 from norman_objects.shared.inputs.input_source import InputSource
 
 
@@ -11,7 +12,7 @@ class InputSourceResolver:
         if isinstance(data, str):
             stripped_string = data.strip()
 
-            if re.match(r"^(?:http|https)://", stripped_string, re.IGNORECASE):
+            if InputSourceResolver.is_url(stripped_string):
                 return InputSource.Link
 
             path = Path(stripped_string)
@@ -31,3 +32,12 @@ class InputSourceResolver:
             return InputSource.Stream
 
         return InputSource.Primitive
+
+    @staticmethod
+    def is_url(stripped_string: str):
+        parsed = urlparse(stripped_string)
+        if parsed.scheme not in ["http", "https"]:
+            return False
+        if parsed.netloc is None or parsed.netloc == "":
+            return False
+        return True
