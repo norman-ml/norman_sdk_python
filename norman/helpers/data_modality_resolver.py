@@ -1,14 +1,13 @@
-import re
 from norman_objects.shared.parameters.data_modality import DataModality
 
 
 class DataModalityResolver:
-    _AUDIO_ENCODINGS = {"flac", "m4a", "mp3", "ogg", "wav"}
-    _VIDEO_ENCODINGS = {"avi", "mkv", "mov", "mp4", "webm"}
-    _IMAGE_ENCODINGS = {"bmp", "gif", "jpeg", "jpg", "png", "tiff", "webp"}
-    _TEXT_ENCODINGS  = {"ascii", "string", "str", "text", "txt", "utf"}
+    _AUDIO_ENCODINGS = {"mp3", "wav"}
+    _VIDEO_ENCODINGS = {"avi", "mp4"}
+    _IMAGE_ENCODINGS = {"jpeg", "jpg", "png"}
+    _TEXT_ENCODINGS  = {"ascii", "string", "str", "text", "txt", "utf8", "utf16"}
     _FLOAT_ENCODINGS = {"double", "f16", "f32", "f64", "float"}
-    _INT_ENCODINGS   = {"i8", "i16", "i32", "i64", "int", "uint"}
+    _INT_ENCODINGS   = {"int", "uint"}
 
     @staticmethod
     def resolve(data_encoding: str) -> DataModality:

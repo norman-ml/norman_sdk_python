@@ -28,7 +28,7 @@ class InvocationOutputHandle:
             stream = await self._get_output_results_stream()
         return stream
 
-    async def _get_output_results_stream(self):
+    async def _get_output_results_stream(self) -> Any:
         headers, stream = await self._retrieve_service.get_invocation_output(
             self._token,
             self._account_id,
