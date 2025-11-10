@@ -42,7 +42,7 @@ class ModelUploadManager:
 
         async with self._http_client:
             model = await self._create_model_in_persist(self._authentication_manager.access_token, model)
-            await self._upload_assets(self._authentication_manager.access_token, model, model_config.assets)
+            await self._upload_assets(self._authentication_manager.access_token, model, model_config["assets"])
             await self._wait_for_flags(self._authentication_manager.access_token, model)
             return model
 
@@ -53,17 +53,21 @@ class ModelUploadManager:
             raise ValueError("Failed to create model")
         return next(iter(response.values()))
 
-    async def _upload_assets(self, token: Sensitive[str], model: Model, assets: list[ModelConfig]) -> None:
+    async def _upload_assets(self, token: Sensitive[str], model: Model, assets: list[dict]) -> None:
         tasks = [
             self._handle_asset(token, model_asset, assets)
             for model_asset in model.assets
         ]
         await asyncio.gather(*tasks)
 
-    async def _handle_asset(self, token: Sensitive[str], model_asset: ModelAsset, assets: list[AssetConfig]) -> None:
-        asset = next(asset for asset in assets if asset.asset_name == model_asset.asset_name)
-        data = asset.data
-        source = InputSourceResolver.resolve(data)
+    async def _handle_asset(self, token: Sensitive[str], model_asset: ModelAsset, assets: list[dict]) -> None:
+        asset = next(asset for asset in assets if asset["asset_name"] == model_asset.asset_name)
+        data = asset["data"]
+
+        if "source" in data:
+            source = asset["data"]
+        else:
+            source = InputSourceResolver.resolve(data)
 
         if source == "Link":
             await self._handle_link_asset(token, model_asset, data)

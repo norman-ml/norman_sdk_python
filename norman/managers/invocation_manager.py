@@ -33,13 +33,15 @@ class InvocationManager:
 
     async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, Any]:
         await self._authentication_manager.invalidate_access_token()
-        invocation_config = InvocationConfigFactory.create(invocation_config)
+        validated_invocation_config = InvocationConfigFactory.create(invocation_config)
 
         async with self._http_client:
-            invocation = await self._create_invocation_in_database(self._authentication_manager.access_token, invocation_config)
-            await self._upload_inputs(self._authentication_manager.access_token, invocation, invocation_config)
+            invocation = await self._create_invocation_in_database(self._authentication_manager.access_token, validated_invocation_config)
+            await self._upload_inputs(self._authentication_manager.access_token, invocation, validated_invocation_config)
             await self._wait_for_flags(self._authentication_manager.access_token, invocation)
-            results = await self._get_results(self._authentication_manager.access_token, invocation)
+            output_handlers = await self._get_results(self._authentication_manager.access_token, invocation)
+            results = await self._resolve_outputs(validated_invocation_config, output_handlers)
+
         return results
 
     async def _create_invocation_in_database(self, token: Sensitive[str], invocation_config: InvocationConfig) -> Invocation:
@@ -71,7 +73,15 @@ class InvocationManager:
             raise ValueError(f"Unsupported input source: {source}")
 
     async def _upload_primitive_input(self, token: Sensitive[str], input, data) -> None:
-        await self._file_transfer.upload_primitive(token, input, data)
+        pairing_request = SocketInputPairingRequest(
+            invocation_id=input.invocation_id,
+            input_id=input.id,
+            account_id=input.account_id,
+            model_id=input.model_id,
+            file_size_in_bytes=0
+        )
+
+        await self._file_transfer.upload_primitive(token, pairing_request, data)
 
     async def _upload_file_input(self, token: Sensitive[str], input, path: str) -> None:
         pairing_request = SocketInputPairingRequest(
@@ -117,3 +127,20 @@ class InvocationManager:
             output_handles[output.display_title] = InvocationOutputHandle(token, invocation.account_id, invocation.model_id, invocation.id, output.id)
 
         return output_handles
+
+    async def _resolve_outputs(self, validated_invocation_config: Any, output_handlers: dict[str, Any],) -> dict[str, Any]:
+        for output_name, output_handler in output_handlers.items():
+            result = None
+
+            if (validated_invocation_config.outputs_format and output_name in validated_invocation_config.outputs_format):
+                output_format = validated_invocation_config.outputs_format[output_name]
+                method_name = output_format.value
+                method = getattr(output_handler, method_name, None)
+                result = await method()
+
+            if result is None:
+                result = await output_handler.bytes()
+
+            output_handlers[output_name] = result
+
+        return output_handlers

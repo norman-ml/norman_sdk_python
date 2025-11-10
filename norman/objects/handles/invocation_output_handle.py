@@ -1,6 +1,5 @@
 from typing import Any
 
-from norman_core.clients.http_client import HttpClient
 from norman_core.services.retrieve.retrieve import Retrieve
 
 
@@ -13,19 +12,15 @@ class InvocationOutputHandle:
         self._invocation_id = invocation_id
         self._output_id = output_id
 
-        self._http_client = HttpClient()
-
     async def bytes(self) -> bytes:
         bytes_result = bytearray()
-        async with self._http_client:
-            stream = await self._get_output_results_stream()
-            async for chunk in stream:
-                bytes_result.extend(chunk)
+        stream = await self._get_output_results_stream()
+        async for chunk in stream:
+            bytes_result.extend(chunk)
         return bytes_result
 
     async def stream(self) -> Any:
-        async with self._http_client:
-            stream = await self._get_output_results_stream()
+        stream = await self._get_output_results_stream()
         return stream
 
     async def _get_output_results_stream(self) -> Any:

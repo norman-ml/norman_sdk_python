@@ -17,19 +17,15 @@ class FileTransferManager:
         self._file_pull_service = FilePull()
         self._file_utils = FileUtils()
 
-    async def upload_primitive(self, token: Sensitive[str], entity: Any, data: Any) -> None:
-        buffer = io.BytesIO()
-        buffer.write(str(data).encode("utf-8"))
-        buffer.seek(0)
-        #buffer = str(data).encode("utf-8")
-        await self.upload_from_buffer(token, entity, buffer)
+    async def upload_primitive(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], data: Any) -> None:
+        buffer = io.BytesIO(str(data).encode("utf-8"))
+        await self.upload_from_buffer(token, pairing_request, buffer)
 
     async def upload_file(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], path: str) -> None:
         async with aiofiles.open(path, mode="rb") as file:
             await self.upload_from_buffer(token, pairing_request, file)
 
     async def upload_from_buffer(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], buffer: Any) -> None:
-        #TODO consider upload_bytes
         file_size = self._file_utils.get_buffer_size(buffer)
         pairing_request.file_size_in_bytes = file_size
         if isinstance(pairing_request, SocketAssetPairingRequest):
