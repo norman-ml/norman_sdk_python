@@ -17,15 +17,6 @@ class Norman(metaclass=Singleton):
 
     It manages internal authentication and service communication automatically
     once initialized with a valid API key.
-
-    Example:
-        ```python
-        from norman import Norman
-
-        norman = Norman(api_key="nrm_sk_...")
-        model = await norman.upload_model(model_config)
-        results = await norman.invoke(invocation_config)
-        ```
     """
 
     def __init__(self, api_key: str):
@@ -161,14 +152,24 @@ class Norman(metaclass=Singleton):
         **Response Structure**
 
         - ***response*** (`Model`) —
-          A `Model` object containing metadata for the uploaded model.
+          A `Model` object containing full metadata for the uploaded model.
 
-            - **name** (`str`) — Model name.
-            - **model_id** (`str`) — Unique identifier assigned by Norman.
-            - **url** (`str`) — API endpoint for invoking the model.
-            - **model_type** (`str`) — Model framework type.
-            - **hosting_location** (`str`) — Where the model is hosted.
-            - **inputs / outputs** (`List[dict]`) — Model I/O signatures.
+            - **account_id** (`str`) — ID of the account that owns the model.
+            - **active** (`bool`) — Indicates whether this model version is currently active.
+            - **assets** (`List[dict]`) — List of associated assets required by the model (e.g., weights, tokenizer files).
+            - **hosting_location** (`str`) — Specifies where the model is deployed (`"Internal"`, `"External"`, etc.).
+            - **id** (`str`) — Unique identifier assigned to the model by Norman.
+            - **inputs / outputs** (`List[dict]`) — Structured definitions describing the model’s expected inputs and produced outputs.
+            - **long_description** (`str`) — Detailed explanation of the model’s behavior, inputs, and use cases.
+            - **model_class** (`str`) — Fully qualified class name or implementation reference.
+            - **model_type** (`str`) — Underlying framework or runtime type (e.g., `"PyTorch"`, `"TensorFlow"`).
+            - **name** (`str`) — Human-readable name of the model.
+            - **output_format** (`str`) — Format of the model’s response payload (e.g., `"JSON"`, `"Binary"`).
+            - **request_type** (`str`) — HTTP method used for inference requests (e.g., `"POST"`, `"GET"`).
+            - **short_description** (`str`) — Concise summary of the model’s purpose or functionality.
+            - **tags** (`List[str]`) — User-defined tags for organization, categorization, or filtering.
+            - **version_label** (`str`) — Version or release tag for this model (e.g., `"v1.0"`, `"beta"`).
+
 
         **Example Usage:**
         ```python
@@ -218,7 +219,7 @@ class Norman(metaclass=Singleton):
 
         This method executes a deployed Norman model using the provided
         `invocation_config`. The configuration describes which model to run,
-        what inputs to send, and how outputs should be returned.
+        what inputs to send, and optionally how outputs should be returned.
 
         **Parameters**
 
