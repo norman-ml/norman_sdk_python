@@ -41,12 +41,12 @@ class ModelUploadManager:
         model = ModelFactory.create(model_config)
 
         async with self._http_client:
-            model = await self._create_model_in_persist(self._authentication_manager.access_token, model)
+            model = await self._create_model_in_database(self._authentication_manager.access_token, model)
             await self._upload_assets(self._authentication_manager.access_token, model, model_config["assets"])
             await self._wait_for_flags(self._authentication_manager.access_token, model)
             return model
 
-    async def _create_model_in_persist(self, token: Sensitive[str], model: Model) -> Model:
+    async def _create_model_in_database(self, token: Sensitive[str], model: Model) -> Model:
         response = await self._persist_service.models.create_models(token, [model])
 
         if len(response) == 0:
@@ -54,14 +54,16 @@ class ModelUploadManager:
         return next(iter(response.values()))
 
     async def _upload_assets(self, token: Sensitive[str], model: Model, assets: list[dict]) -> None:
-        tasks = [
-            self._handle_asset(token, model_asset, assets)
-            for model_asset in model.assets
-        ]
-        await asyncio.gather(*tasks)
+        for model_asset in model.assets:
+            await self._handle_asset_upload(token, model_asset, assets)
 
-    async def _handle_asset(self, token: Sensitive[str], model_asset: ModelAsset, assets: list[dict]) -> None:
-        asset = next(asset for asset in assets if asset["asset_name"] == model_asset.asset_name)
+    async def _handle_asset_upload(self, token: Sensitive[str], model_asset: ModelAsset, assets: list[dict]) -> None:
+        assets_by_name = {asset_entry["asset_name"]: asset_entry for asset_entry in assets}
+
+        asset = assets_by_name.get(model_asset.asset_name)
+        if asset is None:
+            raise ValueError(f"Asset missing for model: {model_asset.asset_name}")
+
         data = asset["data"]
 
         if "source" in data:
@@ -137,5 +139,8 @@ class ModelUploadManager:
         await self._file_push_service.complete_file_transfer(token, checksum_request)
 
     async def _wait_for_flags(self, token: Sensitive[str], model: Model) -> None:
-        entity_ids = [model.id] + [asset.id for asset in model.assets]
+        entity_ids = [model.id]
+        entity_ids.extend([asset.id for asset in model.assets])
+
         await self._flag_helper.wait_for_entities(token, entity_ids)
+

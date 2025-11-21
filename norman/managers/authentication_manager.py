@@ -24,7 +24,7 @@ class AuthenticationManager(metaclass=Singleton):
     @property
     def access_token(self) -> Sensitive[str]:
         if self._access_token is None:
-            raise ValueError("Access token is not available — you may need to log in first.")
+            raise ValueError("Access token is not available — you may need to log in first")
         return self._access_token
 
     @property
@@ -45,18 +45,18 @@ class AuthenticationManager(metaclass=Singleton):
     @staticmethod
     async def signup_and_generate_key(username: str) -> SignupKeyResponse:
         async with HttpClient():
-            authentication_service = Authenticate() # because signup_and_generate_key is static
+            authentication_service = Authenticate() # because signup_and_generate_key() is a static method
             signup_request = SignupKeyRequest(name=username)
-            response = await authentication_service.signup.signup_and_generate_key(signup_request)
-            return response
+            signup_response = await authentication_service.signup.signup_and_generate_key(signup_request)
+            return signup_response
 
     async def _login_with_api_key(self) -> None:
         async with self._http_client:
-            if self._api_key is not None and self._api_key != "":
-                request = ApiKeyLoginRequest(api_key=Sensitive(self._api_key))
-                login_response = await self._authentication_service.login.login_with_key(request)
-            else:
+            if self._api_key is None or self._api_key == "":
                 raise ValueError("API key is required. Please provide a valid API key.")
+
+            login_request = ApiKeyLoginRequest(api_key=Sensitive(self._api_key))
+            login_response = await self._authentication_service.login.login_with_key(login_request)
 
             self._account_id = login_response.account.id
             self._access_token = login_response.access_token

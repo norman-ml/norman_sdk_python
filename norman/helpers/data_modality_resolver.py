@@ -2,36 +2,41 @@ from norman_objects.shared.parameters.data_modality import DataModality
 
 
 class DataModalityResolver:
-    _AUDIO_ENCODINGS = {"mp3", "wav"}
-    _VIDEO_ENCODINGS = {"avi", "mp4"}
-    _IMAGE_ENCODINGS = {"jpeg", "jpg", "png"}
-    _TEXT_ENCODINGS  = {"ascii", "string", "str", "text", "txt", "utf8", "utf16"}
-    _FLOAT_ENCODINGS = {"double", "f16", "f32", "f64", "float"}
-    _INT_ENCODINGS   = {"int", "uint"}
+    _ENCODING_MAP = {
+        # Audio
+        "mp3":  DataModality.Audio,
+        "wav":  DataModality.Audio,
+
+        # Video
+        "mp4":  DataModality.Video,
+        "avi":  DataModality.Video,
+
+        # Image
+        "jpg":  DataModality.Image,
+        "jpeg": DataModality.Image,
+        "png":  DataModality.Image,
+
+        # Text
+        "txt":   DataModality.Text,
+
+        # Numeric: float
+        "double": DataModality.Float,
+        "f16":    DataModality.Float,
+        "f32":    DataModality.Float,
+        "f64":    DataModality.Float,
+
+        # Numeric: int
+        "uint":   DataModality.Integer
+    }
 
     @staticmethod
     def resolve(data_encoding: str) -> DataModality:
-        if not data_encoding or not isinstance(data_encoding, str):
+        if not isinstance(data_encoding, str) or data_encoding is None:
             raise ValueError("Invalid data_encoding: must be a non-empty string")
 
         encoding = data_encoding.lower().strip()
 
-        if encoding in DataModalityResolver._AUDIO_ENCODINGS:
-            return DataModality.Audio
+        if encoding not in DataModalityResolver._ENCODING_MAP:
+            raise ValueError(f"Unknown data encoding: {data_encoding}")
 
-        if encoding in DataModalityResolver._VIDEO_ENCODINGS:
-            return DataModality.Video
-
-        if encoding in DataModalityResolver._IMAGE_ENCODINGS:
-            return DataModality.Image
-
-        if encoding in DataModalityResolver._TEXT_ENCODINGS:
-            return DataModality.Text
-
-        if encoding in DataModalityResolver._FLOAT_ENCODINGS:
-            return DataModality.Float
-
-        if encoding in DataModalityResolver._INT_ENCODINGS:
-            return DataModality.Integer
-
-        return DataModality.File
+        return DataModalityResolver._ENCODING_MAP[encoding]

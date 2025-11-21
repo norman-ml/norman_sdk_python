@@ -16,7 +16,7 @@ from norman.helpers.flag_helper import FlagHelper
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation.invocation_config import InvocationConfig
 from norman.objects.factories.invocation_config_factory import InvocationConfigFactory
-from norman.objects.handles.invocation_output_handle import InvocationOutputHandle
+from norman.objects.handles.response_handler import ResponseHandler
 
 
 class InvocationManager:
@@ -46,16 +46,16 @@ class InvocationManager:
 
     async def _create_invocation_in_database(self, token: Sensitive[str], invocation_config: InvocationConfig) -> Invocation:
         invocations = await self._persist_service.invocations.create_invocations_by_model_names(token=token, model_name_counter={invocation_config.model_name: 1})
+        if invocations is None or len(invocations) == 0:
+            raise RuntimeError("Invocation creation failed")
         return invocations[0]
 
     async def _upload_inputs(self, token: Sensitive[str], invocation: Invocation, invocation_config: InvocationConfig) -> None:
-        tasks = []
+        config_map = {input_config.display_title: input_config for input_config in invocation_config.inputs}
 
-        for input in invocation.inputs:
-            input_config = next((config for config in invocation_config.inputs if config.display_title == input.display_title),None)
-            tasks.append(self._handle_input(token, input, input_config))
-
-        await asyncio.gather(*tasks)
+        for invocation_input in invocation.inputs:
+            input_config = config_map.get(invocation_input.display_title)
+            await self._handle_input(token, invocation_input, input_config)
 
     async def _handle_input(self, token: Sensitive[str], input, input_config) -> None:
         source = input_config.source
@@ -118,29 +118,29 @@ class InvocationManager:
         entity_ids = [invocation.id]
         entity_ids.extend([input.id for input in invocation.inputs])
         entity_ids.extend([output.id for output in invocation.outputs])
+
         await self._flag_helper.wait_for_entities(token, entity_ids)
 
     async def _get_results(self, token: Sensitive[str], invocation: Invocation) -> dict[str, Any]:
         output_handles = {}
 
         for output in invocation.outputs:
-            output_handles[output.display_title] = InvocationOutputHandle(token, invocation.account_id, invocation.model_id, invocation.id, output.id)
+            invocation_output = self._retrieve_service.get_invocation_output(token, invocation.account_id, invocation.model_id, invocation.id, output.id)
+            output_handles[output.display_title] = ResponseHandler(invocation_output)
 
         return output_handles
 
     async def _resolve_outputs(self, validated_invocation_config: Any, output_handlers: dict[str, Any],) -> dict[str, Any]:
         for output_name, output_handler in output_handlers.items():
-            result = None
-
-            if (validated_invocation_config.outputs_format and output_name in validated_invocation_config.outputs_format):
+            if (validated_invocation_config.outputs_format is not None):
                 output_format = validated_invocation_config.outputs_format[output_name]
-                method_name = output_format.value
-                method = getattr(output_handler, method_name, None)
-                result = await method()
+                output_handler_method = output_format.value
+                method = getattr(output_handler, output_handler_method, None)
+                output_result = await method()
 
-            if result is None:
-                result = await output_handler.bytes()
+            else:
+                output_result = await output_handler.bytes()
 
-            output_handlers[output_name] = result
+            output_handlers[output_name] = output_result
 
         return output_handlers

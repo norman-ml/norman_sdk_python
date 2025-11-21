@@ -1,6 +1,6 @@
 from enum import Enum
 
 
-class OutputFormat(str, Enum):
+class OutputDeliveryMode(str, Enum):
     Bytes = "bytes"
     Stream = "stream"

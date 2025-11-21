@@ -48,9 +48,20 @@ class ModelFactory(metaclass=Singleton):
         if model_config.model_type is None:
             model_type = ModelType.Pytorch_jit
 
-        inputs = [SignatureFactory.create(signature, SignatureType.Input) for signature in model_config.inputs]
-        outputs = [SignatureFactory.create(signature, SignatureType.Output) for signature in model_config.outputs]
-        assets = [AssetFactory.create(asset) for asset in model_config.assets]
+        inputs = []
+        for signature in model_config.inputs:
+            created = SignatureFactory.create(signature, SignatureType.Input)
+            inputs.append(created)
+
+        outputs = []
+        for signature in model_config.outputs:
+            created = SignatureFactory.create(signature, SignatureType.Output)
+            outputs.append(created)
+
+        assets = []
+        for asset_config in model_config.assets:
+            created = AssetFactory.create(asset_config)
+            assets.append(created)
 
         model = Model(
             name=model_config.name,

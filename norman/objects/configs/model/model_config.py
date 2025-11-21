@@ -20,7 +20,7 @@ class ModelConfig(BaseModel):
     assets: List[AssetConfig] = Field(..., description="List of associated model assets required for execution")
 
     output_format: Optional[OutputFormat] = Field(None, description="Optional format of model outputs (e.g., JSON, Binary)")
-    model_type: Optional[ModelType] = Field(None, description="Optional model type or framework (e.g., PyTorch, TensorFlow)")
+    model_type: Optional[ModelType] = Field(None, description="Optional model type or framework (e.g., PyTorch, Transformer_hf)")
     request_type: Optional[HttpRequestType] = Field(None, description="Optional HTTP request type used for inference (e.g., POST, GET)")
     model_class: Optional[str] = Field(None, description="Fully qualified class name or identifier for the model implementation")
     hosting_location: Optional[ModelHostingLocation] = Field(None, description="Hosting location of the model (Internal or External)")
