@@ -1,7 +1,7 @@
 from norman_objects.shared.model_signatures.model_signature import ModelSignature
 from norman_utils_external.singleton import Singleton
 
-from norman.helpers.data_modality_resolver import DataModalityResolver
+from norman.helpers.signature_modality_resolver import SignatureModalityResolver
 from norman.objects.configs.model.signature_config import SignatureConfig
 from norman.objects.factories.parameter_factory import ParameterFactory
 from norman_objects.shared.model_signatures.http_location import HttpLocation
@@ -14,7 +14,7 @@ class SignatureFactory(metaclass=Singleton):
     def create(signature_config: SignatureConfig, signature_type: SignatureType) -> ModelSignature:
         parameters = []
 
-        modality = DataModalityResolver.resolve(signature_config.data_encoding)
+        modality = SignatureModalityResolver.resolve(signature_config.data_encoding)
 
         http_location = HttpLocation.Body
         if signature_config.http_location is not None:
