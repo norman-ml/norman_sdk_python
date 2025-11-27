@@ -1,6 +1,6 @@
+import os
 from typing import Any
 
-from norman.helpers.file_transfer_manager import FileTransferManager
 from norman.helpers.flag_status_resolver import FlagHelper
 from norman_core.clients.http_client import HttpClient
 from norman_core.services.file_pull.file_pull import FilePull
@@ -12,22 +12,26 @@ from norman_objects.services.file_push.pairing.socket_input_pairing_request impo
 from norman_objects.shared.invocation_signatures.invocation_signature import InvocationSignature
 from norman_objects.shared.invocations.invocation import Invocation
 from norman_objects.shared.security.sensitive import Sensitive
+from norman_utils_external.file_utils import FileUtils
 
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation.invocation_config import InvocationConfig
 from norman.objects.configs.invocation.invocation_signature_config import InvocationSignatureConfig
 from norman.objects.factories.invocation_config_factory import InvocationConfigFactory
 from norman.objects.handles.response_handler import ResponseHandler
+from norman.resolvers.input_source_resolver import InputSourceResolver
+from norman.services.file_transfer_service import FileTransferService
 
 
 class InvocationManager:
     def __init__(self) -> None:
         self._authentication_manager = AuthenticationManager()
+        self._file_transfer_service = FileTransferService()
         self._http_client = HttpClient()
 
         self._file_pull_service = FilePull()
         self._file_push_service = FilePush()
-        self._file_transfer = FileTransferManager()
+        self._file_utils = FileUtils()
         self._flag_helper = FlagHelper()
         self._persist_service = Persist()
         self._retrieve_service = Retrieve()
@@ -55,12 +59,16 @@ class InvocationManager:
         input_configs = {input_config.display_title: input_config for input_config in invocation_config.inputs}
 
         for invocation_input in invocation.inputs:
-            input_config = input_configs.get(invocation_input.display_title)
-            await self._handle_input(token, invocation_input, input_config)
+            input_config = input_configs[invocation_input.display_title]
+            await self._handle_input_upload(token, invocation_input, input_config)
 
-    async def _handle_input(self, token: Sensitive[str], invocation_input: InvocationSignature, input_config: InvocationSignatureConfig) -> None:
-        source = input_config.source
+    async def _handle_input_upload(self, token: Sensitive[str], invocation_input: InvocationSignature, input_config: InvocationSignatureConfig) -> None:
         data = input_config.data
+
+        if input_config.source is not None:
+            source = input_config.source
+        else:
+            source = InputSourceResolver.resolve(data)
 
         if source == "Primitive":
             await self._upload_primitive_input(token, invocation_input, data)
@@ -79,30 +87,32 @@ class InvocationManager:
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
-            file_size_in_bytes=0
+            file_size_in_bytes=self._file_utils.get_buffer_size(data)
         )
 
-        await self._file_transfer.upload_primitive(token, pairing_request, data)
+        await self._file_transfer_service.upload_primitive(token, pairing_request, data)
 
     async def _upload_file_input(self, token: Sensitive[str], invocation_input: InvocationSignature, path: str) -> None:
+        file_size = os.path.getsize(path)
         pairing_request = SocketInputPairingRequest(
             invocation_id=invocation_input.invocation_id,
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
-            file_size_in_bytes=0
+            file_size_in_bytes=file_size
         )
-        await self._file_transfer.upload_file(token, pairing_request, path)
+        await self._file_transfer_service.upload_file(token, pairing_request, path)
 
     async def _upload_stream_input(self, token: Sensitive[str], invocation_input: InvocationSignature, stream: Any) -> None:
+        file_size = self._file_utils.get_buffer_size(stream)
         pairing_request = SocketInputPairingRequest(
             invocation_id=invocation_input.invocation_id,
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
-            file_size_in_bytes=0
+            file_size_in_bytes=file_size
         )
-        await self._file_transfer.upload_from_buffer(token, pairing_request, stream)
+        await self._file_transfer_service.upload_from_buffer(token, pairing_request, stream)
 
     async def _submit_link_input(self, token: Sensitive[str], invocation_input: InvocationSignature, link: str) -> None:
         download_request = InputDownloadRequest(
@@ -131,7 +141,7 @@ class InvocationManager:
 
         return output_handles
 
-    async def _resolve_outputs(self, validated_invocation_config: Any, output_handlers: dict[str, Any],) -> dict[str, Any]:
+    async def _resolve_outputs(self, validated_invocation_config: Any, output_handlers: dict[str, Any]) -> dict[str, Any]:
         for output_name, output_handler in output_handlers.items():
             if (validated_invocation_config.outputs_format is not None):
                 output_format = validated_invocation_config.outputs_format[output_name]

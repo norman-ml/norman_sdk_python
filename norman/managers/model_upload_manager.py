@@ -1,6 +1,8 @@
 from typing import Any
 
 import aiofiles
+from norman.helpers.flag_status_resolver import FlagHelper
+from norman.helpers.input_source_resolver import InputSourceResolver
 from norman_core.clients.http_client import HttpClient
 from norman_core.clients.socket_client import SocketClient
 from norman_core.services.file_pull.file_pull import FilePull
@@ -14,20 +16,18 @@ from norman_objects.shared.models.model_asset import ModelAsset
 from norman_objects.shared.security.sensitive import Sensitive
 from norman_utils_external.file_utils import FileUtils
 
-from norman.helpers.file_transfer_manager import FileTransferManager
-from norman.helpers.flag_status_resolver import FlagHelper
-from norman.helpers.input_source_resolver import InputSourceResolver
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.model.asset_config import AssetConfig
 from norman.objects.configs.model.model_config import ModelConfig
 from norman.objects.factories.model_factory import ModelFactory
+from norman.services.file_transfer_service import FileTransferService
 
 
 class ModelUploadManager:
     def __init__(self) -> None:
         self._authentication_manager = AuthenticationManager()
+        self._file_transfer_service = FileTransferService()
         self._http_client = HttpClient()
-        self._file_transfer = FileTransferManager()
 
         self._file_pull_service = FilePull()
         self._file_push_service = FilePush()
@@ -56,16 +56,13 @@ class ModelUploadManager:
         asset_configs = {asset_entry.asset_name: asset_entry for asset_entry in model_config.assets}
 
         for model_asset in model.assets:
-            asset = asset_configs.get(model_asset.asset_name)
-            await self._handle_asset_upload(token, model_asset, asset)
+            asset_config = asset_configs[model_asset.asset_name]
+            await self._handle_asset_upload(token, model_asset, asset_config)
 
     async def _handle_asset_upload(self, token: Sensitive[str], model_asset: ModelAsset, asset: AssetConfig) -> None:
-        if asset is None:
-            raise ValueError(f"Asset missing for model: {model_asset.asset_name}")
-
         data = asset.data
 
-        if "source" in data:
+        if data.source is not None:
             source = asset.data
         else:
             source = InputSourceResolver.resolve(data)
@@ -96,7 +93,7 @@ class ModelUploadManager:
             asset_id=model_asset.id,
             file_size_in_bytes=0  # temporary, updated in file_transfer
         )
-        await self._file_transfer.upload_file(token, pairing_request, path)
+        await self._file_transfer_service.upload_file(token, pairing_request, path)
 
     async def _handle_stream_asset(self, token: Sensitive[str], model_asset: ModelAsset, stream: Any) -> None:
         pairing_request = SocketAssetPairingRequest(
@@ -105,7 +102,7 @@ class ModelUploadManager:
             asset_id=model_asset.id,
             file_size_in_bytes=0  # temporary, updated in file_transfer
         )
-        await self._file_transfer.upload_from_buffer(token, pairing_request, stream)
+        await self._file_transfer_service.upload_from_buffer(token, pairing_request, stream)
 
     async def _upload_link(self, token: Sensitive[str], model: Model, model_asset: ModelAsset, link: str) -> list[str]:
         download_request = AssetDownloadRequest(

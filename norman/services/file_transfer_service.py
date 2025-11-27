@@ -14,7 +14,7 @@ from norman_utils_external.file_utils import FileUtils
 from norman_utils_external.singleton import Singleton
 
 
-class FileTransferManager(metaclass=Singleton):
+class FileTransferService(metaclass=Singleton):
     def __init__(self) -> None:
         self._file_push_service = FilePush()
         self._file_pull_service = FilePull()
@@ -35,8 +35,6 @@ class FileTransferManager(metaclass=Singleton):
             await self.upload_from_buffer(token, pairing_request, file)
 
     async def upload_from_buffer(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], buffer: Any) -> None:
-        file_size = self._file_utils.get_buffer_size(buffer)
-        pairing_request.file_size_in_bytes = file_size
         if isinstance(pairing_request, SocketAssetPairingRequest):
             socket_info = await self._file_push_service.allocate_socket_for_asset(token, pairing_request)
         elif isinstance(pairing_request, SocketInputPairingRequest):

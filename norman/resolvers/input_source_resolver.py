@@ -12,7 +12,7 @@ class InputSourceResolver:
     @staticmethod
     def resolve(data: Any) -> InputSource:
         if data is None:
-            raise ValueError("Input source cannot be None")
+            raise ValueError("Input data cannot be None")
 
         if isinstance(data, str):
             stripped = data.strip()
