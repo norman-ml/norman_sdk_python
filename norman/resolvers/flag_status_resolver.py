@@ -11,7 +11,7 @@ from norman_objects.shared.status_flags.status_flag_value import StatusFlagValue
 from norman._app_config import NormanAppConfig
 
 
-class FlagHelper:
+class FlagStatusResolver:
     def __init__(self):
         self._persist_service = Persist()
         self._timeout_seconds =  NormanAppConfig.flag_timeout_seconds

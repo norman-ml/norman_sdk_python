@@ -1,7 +1,6 @@
 import os
 from typing import Any
 
-from norman.helpers.flag_status_resolver import FlagHelper
 from norman_core.clients.http_client import HttpClient
 from norman_core.services.file_pull.file_pull import FilePull
 from norman_core.services.file_push.file_push import FilePush
@@ -19,6 +18,7 @@ from norman.objects.configs.invocation.invocation_config import InvocationConfig
 from norman.objects.configs.invocation.invocation_input_config import InvocationInputConfig
 from norman.objects.factories.invocation_config_factory import InvocationConfigFactory
 from norman.objects.handles.response_handler import ResponseHandler
+from norman.resolvers.flag_status_resolver import FlagStatusResolver
 from norman.resolvers.input_source_resolver import InputSourceResolver
 from norman.services.file_transfer_service import FileTransferService
 
@@ -27,12 +27,12 @@ class InvocationManager:
     def __init__(self) -> None:
         self._authentication_manager = AuthenticationManager()
         self._file_transfer_service = FileTransferService()
+        self._file_utils = FileUtils()
+        self._flag_status_resolver = FlagStatusResolver()
         self._http_client = HttpClient()
 
         self._file_pull_service = FilePull()
         self._file_push_service = FilePush()
-        self._file_utils = FileUtils()
-        self._flag_helper = FlagHelper()
         self._persist_service = Persist()
         self._retrieve_service = Retrieve()
 
@@ -44,7 +44,7 @@ class InvocationManager:
             invocation = await self._create_invocation_in_database(self._authentication_manager.access_token, validated_invocation_config)
             await self._upload_inputs(self._authentication_manager.access_token, invocation, validated_invocation_config)
             await self._wait_for_flags(self._authentication_manager.access_token, invocation)
-            output_handlers = await self._get_response_handles(self._authentication_manager.access_token, invocation)
+            output_handlers = await self._get_response_handlers(self._authentication_manager.access_token, invocation)
             results = await self._resolve_outputs(validated_invocation_config, output_handlers)
 
         return results
@@ -131,9 +131,9 @@ class InvocationManager:
         entity_ids.extend([input.id for input in invocation.inputs])
         entity_ids.extend([output.id for output in invocation.outputs])
 
-        await self._flag_helper.wait_for_entities(token, entity_ids)
+        await self._flag_status_resolver.wait_for_entities(token, entity_ids)
 
-    async def _get_response_handles(self, token: Sensitive[str], invocation: Invocation) -> dict[str, Any]:
+    async def _get_response_handlers(self, token: Sensitive[str], invocation: Invocation) -> dict[str, Any]:
         response_handlers = {}
 
         for output in invocation.outputs:

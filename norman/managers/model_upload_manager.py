@@ -1,16 +1,12 @@
 import os
 from typing import Any
 
-import aiofiles
-from norman.helpers.flag_status_resolver import FlagHelper
 from norman.helpers.input_source_resolver import InputSourceResolver
 from norman_core.clients.http_client import HttpClient
-from norman_core.clients.socket_client import SocketClient
 from norman_core.services.file_pull.file_pull import FilePull
 from norman_core.services.file_push.file_push import FilePush
 from norman_core.services.persist import Persist
 from norman_objects.services.file_pull.requests.asset_download_request import AssetDownloadRequest
-from norman_objects.services.file_push.checksum.checksum_request import ChecksumRequest
 from norman_objects.services.file_push.pairing.socket_asset_pairing_request import SocketAssetPairingRequest
 from norman_objects.shared.models.model import Model
 from norman_objects.shared.models.model_asset import ModelAsset
@@ -21,6 +17,7 @@ from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.model.asset_config import AssetConfig
 from norman.objects.configs.model.model_config import ModelConfig
 from norman.objects.factories.model_factory import ModelFactory
+from norman.resolvers.flag_status_resolver import FlagStatusResolver
 from norman.services.file_transfer_service import FileTransferService
 
 
@@ -28,12 +25,12 @@ class ModelUploadManager:
     def __init__(self) -> None:
         self._authentication_manager = AuthenticationManager()
         self._file_transfer_service = FileTransferService()
+        self._file_utils = FileUtils()
+        self._flag_status_resolver = FlagStatusResolver()
         self._http_client = HttpClient()
 
         self._file_pull_service = FilePull()
         self._file_push_service = FilePush()
-        self._file_utils = FileUtils()
-        self._flag_helper = FlagHelper()
         self._persist_service = Persist()
 
     async def upload_model(self, model_config: dict[str, Any]) -> Model:
@@ -111,4 +108,4 @@ class ModelUploadManager:
         entity_ids = [model.id]
         entity_ids.extend([asset.id for asset in model.assets])
 
-        await self._flag_helper.wait_for_entities(token, entity_ids)
+        await self._flag_status_resolver.wait_for_entities(token, entity_ids)
