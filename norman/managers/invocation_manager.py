@@ -1,6 +1,7 @@
-import asyncio
 from typing import Any
 
+from norman.helpers.file_transfer_manager import FileTransferManager
+from norman.helpers.flag_status_resolver import FlagHelper
 from norman_core.clients.http_client import HttpClient
 from norman_core.services.file_pull.file_pull import FilePull
 from norman_core.services.file_push.file_push import FilePush
@@ -8,13 +9,13 @@ from norman_core.services.persist import Persist
 from norman_core.services.retrieve.retrieve import Retrieve
 from norman_objects.services.file_pull.requests.input_download_request import InputDownloadRequest
 from norman_objects.services.file_push.pairing.socket_input_pairing_request import SocketInputPairingRequest
+from norman_objects.shared.invocation_signatures.invocation_signature import InvocationSignature
 from norman_objects.shared.invocations.invocation import Invocation
 from norman_objects.shared.security.sensitive import Sensitive
 
-from norman.helpers.file_transfer_manager import FileTransferManager
-from norman.helpers.flag_status_resolver import FlagHelper
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation.invocation_config import InvocationConfig
+from norman.objects.configs.invocation.invocation_signature_config import InvocationSignatureConfig
 from norman.objects.factories.invocation_config_factory import InvocationConfigFactory
 from norman.objects.handles.response_handler import ResponseHandler
 
@@ -51,65 +52,65 @@ class InvocationManager:
         return invocations[0]
 
     async def _upload_inputs(self, token: Sensitive[str], invocation: Invocation, invocation_config: InvocationConfig) -> None:
-        config_map = {input_config.display_title: input_config for input_config in invocation_config.inputs}
+        input_configs = {input_config.display_title: input_config for input_config in invocation_config.inputs}
 
         for invocation_input in invocation.inputs:
-            input_config = config_map.get(invocation_input.display_title)
+            input_config = input_configs.get(invocation_input.display_title)
             await self._handle_input(token, invocation_input, input_config)
 
-    async def _handle_input(self, token: Sensitive[str], input, input_config) -> None:
+    async def _handle_input(self, token: Sensitive[str], invocation_input: InvocationSignature, input_config: InvocationSignatureConfig) -> None:
         source = input_config.source
         data = input_config.data
 
         if source == "Primitive":
-            await self._upload_primitive_input(token, input, data)
+            await self._upload_primitive_input(token, invocation_input, data)
         elif source == "File":
-            await self._upload_file_input(token, input, data)
+            await self._upload_file_input(token, invocation_input, data)
         elif source == "Stream":
-            await self._upload_stream_input(token, input, data)
+            await self._upload_stream_input(token, invocation_input, data)
         elif source == "Link":
-            await self._submit_link_input(token, input, data)
+            await self._submit_link_input(token, invocation_input, data)
         else:
             raise ValueError(f"Unsupported input source: {source}")
 
-    async def _upload_primitive_input(self, token: Sensitive[str], input, data) -> None:
+    async def _upload_primitive_input(self, token: Sensitive[str], invocation_input: InvocationSignature, data: Any) -> None:
         pairing_request = SocketInputPairingRequest(
-            invocation_id=input.invocation_id,
-            input_id=input.id,
-            account_id=input.account_id,
-            model_id=input.model_id,
+            invocation_id=invocation_input.invocation_id,
+            input_id=invocation_input.id,
+            account_id=invocation_input.account_id,
+            model_id=invocation_input.model_id,
             file_size_in_bytes=0
         )
 
         await self._file_transfer.upload_primitive(token, pairing_request, data)
 
-    async def _upload_file_input(self, token: Sensitive[str], input, path: str) -> None:
+    async def _upload_file_input(self, token: Sensitive[str], invocation_input: InvocationSignature, path: str) -> None:
         pairing_request = SocketInputPairingRequest(
-            invocation_id=input.invocation_id,
-            input_id=input.id,
-            account_id=input.account_id,
-            model_id=input.model_id,
+            invocation_id=invocation_input.invocation_id,
+            input_id=invocation_input.id,
+            account_id=invocation_input.account_id,
+            model_id=invocation_input.model_id,
             file_size_in_bytes=0
         )
         await self._file_transfer.upload_file(token, pairing_request, path)
 
-    async def _upload_stream_input(self, token: Sensitive[str], input, stream: Any) -> None:
+    async def _upload_stream_input(self, token: Sensitive[str], invocation_input: InvocationSignature, stream: Any) -> None:
         pairing_request = SocketInputPairingRequest(
-            invocation_id=input.invocation_id,
-            input_id=input.id,
-            account_id=input.account_id,
-            model_id=input.model_id,
+            invocation_id=invocation_input.invocation_id,
+            input_id=invocation_input.id,
+            account_id=invocation_input.account_id,
+            model_id=invocation_input.model_id,
             file_size_in_bytes=0
         )
         await self._file_transfer.upload_from_buffer(token, pairing_request, stream)
 
-    async def _submit_link_input(self, token: Sensitive[str], input, link: str) -> None:
+    async def _submit_link_input(self, token: Sensitive[str], invocation_input: InvocationSignature, link: str) -> None:
         download_request = InputDownloadRequest(
-            signature_id=input.signature_id,
-            invocation_id=input.invocation_id,
-            input_id=input.id,
-            account_id=input.account_id,
-            model_id=input.model_id,
+            signature_id=invocation_input.signature_id,
+            invocation_id=invocation_input.invocation_id,
+            input_id=invocation_input.id,
+            account_id=invocation_input.account_id,
+            model_id=invocation_input.model_id,
             links=[link],
         )
         await self._file_pull_service.submit_input_links(token, download_request)

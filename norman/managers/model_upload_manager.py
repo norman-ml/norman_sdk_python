@@ -18,6 +18,8 @@ from norman.helpers.file_transfer_manager import FileTransferManager
 from norman.helpers.flag_status_resolver import FlagHelper
 from norman.helpers.input_source_resolver import InputSourceResolver
 from norman.managers.authentication_manager import AuthenticationManager
+from norman.objects.configs.model.asset_config import AssetConfig
+from norman.objects.configs.model.model_config import ModelConfig
 from norman.objects.factories.model_factory import ModelFactory
 
 
@@ -35,35 +37,36 @@ class ModelUploadManager:
 
     async def upload_model(self, model_config: dict[str, Any]) -> Model:
         await self._authentication_manager.invalidate_access_token()
-        model = ModelFactory.create(model_config)
+        validated_model_config = ModelConfig.model_validate(model_config)
+        model = ModelFactory.create(validated_model_config)
 
         async with self._http_client:
             model = await self._create_model_in_database(self._authentication_manager.access_token, model)
-            await self._upload_assets(self._authentication_manager.access_token, model, model_config["assets"])
+            await self._upload_assets(self._authentication_manager.access_token, model, validated_model_config)
             await self._wait_for_flags(self._authentication_manager.access_token, model)
             return model
 
     async def _create_model_in_database(self, token: Sensitive[str], model: Model) -> Model:
         models = await self._persist_service.models.create_models(token, [model])
         if models is None or len(models) == 0:
-            raise RuntimeError("Models creation failed")
+            raise RuntimeError("Model creation failed")
         return models[0]
 
-    async def _upload_assets(self, token: Sensitive[str], model: Model, assets: list[dict]) -> None:
+    async def _upload_assets(self, token: Sensitive[str], model: Model, model_config: ModelConfig) -> None:
+        asset_configs = {asset_entry.asset_name: asset_entry for asset_entry in model_config.assets}
+
         for model_asset in model.assets:
-            await self._handle_asset_upload(token, model_asset, assets)
+            asset = asset_configs.get(model_asset.asset_name)
+            await self._handle_asset_upload(token, model_asset, asset)
 
-    async def _handle_asset_upload(self, token: Sensitive[str], model_asset: ModelAsset, assets: list[dict]) -> None:
-        assets_by_name = {asset_entry["asset_name"]: asset_entry for asset_entry in assets}
-
-        asset = assets_by_name.get(model_asset.asset_name)
+    async def _handle_asset_upload(self, token: Sensitive[str], model_asset: ModelAsset, asset: AssetConfig) -> None:
         if asset is None:
             raise ValueError(f"Asset missing for model: {model_asset.asset_name}")
 
-        data = asset["data"]
+        data = asset.data
 
         if "source" in data:
-            source = asset["data"]
+            source = asset.data
         else:
             source = InputSourceResolver.resolve(data)
 

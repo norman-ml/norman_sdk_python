@@ -17,9 +17,7 @@ from norman_objects.shared.models.model_hosting_location import ModelHostingLoca
 class ModelFactory(metaclass=Singleton):
 
     @staticmethod
-    def create(model_config: dict[str, Any]) -> Model:
-        model_config = ModelConfig.model_validate(model_config)
-
+    def create(model_config: ModelConfig) -> Model:
         if model_config.model_class is None:
             model_class = ""
         else:
