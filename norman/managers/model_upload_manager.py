@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any
 
 import aiofiles
@@ -19,9 +18,7 @@ from norman.helpers.file_transfer_manager import FileTransferManager
 from norman.helpers.flag_helper import FlagHelper
 from norman.helpers.input_source_resolver import InputSourceResolver
 from norman.managers.authentication_manager import AuthenticationManager
-from norman.objects.configs.model.model_config import ModelConfig
 from norman.objects.factories.model_factory import ModelFactory
-from norman.objects.configs.model.asset_config import AssetConfig
 
 
 class ModelUploadManager:
