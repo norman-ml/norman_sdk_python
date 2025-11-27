@@ -11,8 +11,10 @@ from norman_objects.services.file_push.pairing.socket_asset_pairing_request impo
 from norman_objects.services.file_push.pairing.socket_input_pairing_request import SocketInputPairingRequest
 from norman_objects.shared.security.sensitive import Sensitive
 from norman_utils_external.file_utils import FileUtils
+from norman_utils_external.singleton import Singleton
 
-class FileTransferManager:
+
+class FileTransferManager(metaclass=Singleton):
     def __init__(self) -> None:
         self._file_push_service = FilePush()
         self._file_pull_service = FilePull()

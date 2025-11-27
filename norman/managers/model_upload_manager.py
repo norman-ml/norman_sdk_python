@@ -15,7 +15,7 @@ from norman_objects.shared.security.sensitive import Sensitive
 from norman_utils_external.file_utils import FileUtils
 
 from norman.helpers.file_transfer_manager import FileTransferManager
-from norman.helpers.flag_helper import FlagHelper
+from norman.helpers.flag_status_resolver import FlagHelper
 from norman.helpers.input_source_resolver import InputSourceResolver
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.factories.model_factory import ModelFactory
@@ -44,11 +44,10 @@ class ModelUploadManager:
             return model
 
     async def _create_model_in_database(self, token: Sensitive[str], model: Model) -> Model:
-        response = await self._persist_service.models.create_models(token, [model])
-
-        if len(response) == 0:
-            raise ValueError("Failed to create model")
-        return next(iter(response.values()))
+        models = await self._persist_service.models.create_models(token, [model])
+        if models is None or len(models) == 0:
+            raise RuntimeError("Models creation failed")
+        return models[0]
 
     async def _upload_assets(self, token: Sensitive[str], model: Model, assets: list[dict]) -> None:
         for model_asset in model.assets:
