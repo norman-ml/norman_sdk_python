@@ -1,4 +1,5 @@
 import io
+import json
 from typing import Any, Union
 
 import aiofiles
@@ -18,7 +19,13 @@ class FileTransferManager:
         self._file_utils = FileUtils()
 
     async def upload_primitive(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], data: Any) -> None:
-        buffer = io.BytesIO(str(data).encode("utf-8"))
+        if isinstance(data, (bytes, bytearray)):
+            payload = data
+        elif isinstance(data, (dict, list)):
+            payload = json.dumps(data).encode()
+        else:
+            payload = str(data).encode()
+        buffer = io.BytesIO(payload)
         await self.upload_from_buffer(token, pairing_request, buffer)
 
     async def upload_file(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], path: str) -> None:
