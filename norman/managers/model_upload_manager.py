@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 import aiofiles
@@ -67,14 +68,34 @@ class ModelUploadManager:
         else:
             source = InputSourceResolver.resolve(data)
 
-        if source == "Link":
-            await self._handle_link_asset(token, model_asset, data)
-        elif source == "File":
+        if source == "File":
             await self._handle_file_asset(token, model_asset, data)
         elif source == "Stream":
             await self._handle_stream_asset(token, model_asset, data)
+        elif source == "Link":
+            await self._handle_link_asset(token, model_asset, data)
         else:
             raise ValueError(f"Invalid model asset source: {source}")
+
+    async def _handle_file_asset(self, token: Sensitive[str], model_asset: ModelAsset, path: str) -> None:
+        file_size = os.path.getsize(path)
+        pairing_request = SocketAssetPairingRequest(
+            account_id=model_asset.account_id,
+            model_id=model_asset.model_id,
+            asset_id=model_asset.id,
+            file_size_in_bytes=file_size
+        )
+        await self._file_transfer_service.upload_file(token, pairing_request, path)
+
+    async def _handle_stream_asset(self, token: Sensitive[str], model_asset: ModelAsset, stream: Any) -> None:
+        file_size = self._file_utils.get_buffer_size(stream)
+        pairing_request = SocketAssetPairingRequest(
+            account_id=model_asset.account_id,
+            model_id=model_asset.model_id,
+            asset_id=model_asset.id,
+            file_size_in_bytes=file_size
+        )
+        await self._file_transfer_service.upload_from_buffer(token, pairing_request, stream)
 
     async def _handle_link_asset(self, token: Sensitive[str], model_asset: ModelAsset, data: str) -> None:
         download_request = AssetDownloadRequest(
@@ -86,57 +107,8 @@ class ModelUploadManager:
         )
         await self._file_pull_service.submit_asset_links(token, download_request)
 
-    async def _handle_file_asset(self, token: Sensitive[str], model_asset: ModelAsset, path: str) -> None:
-        pairing_request = SocketAssetPairingRequest(
-            account_id=model_asset.account_id,
-            model_id=model_asset.model_id,
-            asset_id=model_asset.id,
-            file_size_in_bytes=0  # temporary, updated in file_transfer
-        )
-        await self._file_transfer_service.upload_file(token, pairing_request, path)
-
-    async def _handle_stream_asset(self, token: Sensitive[str], model_asset: ModelAsset, stream: Any) -> None:
-        pairing_request = SocketAssetPairingRequest(
-            account_id=model_asset.account_id,
-            model_id=model_asset.model_id,
-            asset_id=model_asset.id,
-            file_size_in_bytes=0  # temporary, updated in file_transfer
-        )
-        await self._file_transfer_service.upload_from_buffer(token, pairing_request, stream)
-
-    async def _upload_link(self, token: Sensitive[str], model: Model, model_asset: ModelAsset, link: str) -> list[str]:
-        download_request = AssetDownloadRequest(
-            account_id=model.account_id,
-            model_id=model.id,
-            asset_id=model_asset.id,
-            asset_name=model_asset.asset_name,
-            links=[link]
-        )
-        await self._file_pull_service.submit_asset_links(token, download_request)
-
-    async def _upload_file(self, token: Sensitive[str], model: Model, model_asset: ModelAsset, path: str) -> None:
-        async with aiofiles.open(path, mode="rb") as file:
-            await self._upload_buffer(token, model, model_asset, file)
-
-    async def _upload_buffer(self, token: Sensitive[str], model: Model, model_asset: ModelAsset, file_buffer: Any) -> None:
-        pairing_request = SocketAssetPairingRequest(
-            account_id=model.account_id,
-            model_id=model.id,
-            asset_id=model_asset.id,
-            file_size_in_bytes=self._file_utils.get_buffer_size(file_buffer),
-        )
-        socket_info = await self._file_push_service.allocate_socket_for_asset(token, pairing_request)
-        checksum = await SocketClient.write_and_digest(socket_info, file_buffer)
-
-        checksum_request = ChecksumRequest(
-            pairing_id=socket_info.pairing_id,
-            checksum=checksum
-        )
-        await self._file_push_service.complete_file_transfer(token, checksum_request)
-
     async def _wait_for_flags(self, token: Sensitive[str], model: Model) -> None:
         entity_ids = [model.id]
         entity_ids.extend([asset.id for asset in model.assets])
 
         await self._flag_helper.wait_for_entities(token, entity_ids)
-

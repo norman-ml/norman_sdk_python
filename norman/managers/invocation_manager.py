@@ -16,7 +16,7 @@ from norman_utils_external.file_utils import FileUtils
 
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation.invocation_config import InvocationConfig
-from norman.objects.configs.invocation.invocation_signature_config import InvocationSignatureConfig
+from norman.objects.configs.invocation.invocation_input_config import InvocationInputConfig
 from norman.objects.factories.invocation_config_factory import InvocationConfigFactory
 from norman.objects.handles.response_handler import ResponseHandler
 from norman.resolvers.input_source_resolver import InputSourceResolver
@@ -44,7 +44,7 @@ class InvocationManager:
             invocation = await self._create_invocation_in_database(self._authentication_manager.access_token, validated_invocation_config)
             await self._upload_inputs(self._authentication_manager.access_token, invocation, validated_invocation_config)
             await self._wait_for_flags(self._authentication_manager.access_token, invocation)
-            output_handlers = await self._get_results(self._authentication_manager.access_token, invocation)
+            output_handlers = await self._get_response_handles(self._authentication_manager.access_token, invocation)
             results = await self._resolve_outputs(validated_invocation_config, output_handlers)
 
         return results
@@ -62,7 +62,7 @@ class InvocationManager:
             input_config = input_configs[invocation_input.display_title]
             await self._handle_input_upload(token, invocation_input, input_config)
 
-    async def _handle_input_upload(self, token: Sensitive[str], invocation_input: InvocationSignature, input_config: InvocationSignatureConfig) -> None:
+    async def _handle_input_upload(self, token: Sensitive[str], invocation_input: InvocationSignature, input_config: InvocationInputConfig) -> None:
         data = input_config.data
 
         if input_config.source is not None:
@@ -82,12 +82,13 @@ class InvocationManager:
             raise ValueError(f"Unsupported input source: {source}")
 
     async def _upload_primitive_input(self, token: Sensitive[str], invocation_input: InvocationSignature, data: Any) -> None:
+        file_size = self._file_utils.get_buffer_size(data)
         pairing_request = SocketInputPairingRequest(
             invocation_id=invocation_input.invocation_id,
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
-            file_size_in_bytes=self._file_utils.get_buffer_size(data)
+            file_size_in_bytes=file_size
         )
 
         await self._file_transfer_service.upload_primitive(token, pairing_request, data)
@@ -132,26 +133,32 @@ class InvocationManager:
 
         await self._flag_helper.wait_for_entities(token, entity_ids)
 
-    async def _get_results(self, token: Sensitive[str], invocation: Invocation) -> dict[str, Any]:
-        output_handles = {}
+    async def _get_response_handles(self, token: Sensitive[str], invocation: Invocation) -> dict[str, Any]:
+        response_handlers = {}
 
         for output in invocation.outputs:
             invocation_output = self._retrieve_service.get_invocation_output(token, invocation.account_id, invocation.model_id, invocation.id, output.id)
-            output_handles[output.display_title] = ResponseHandler(invocation_output)
+            response_handlers[output.display_title] = ResponseHandler(invocation_output)
 
-        return output_handles
+        return response_handlers
 
-    async def _resolve_outputs(self, validated_invocation_config: Any, output_handlers: dict[str, Any]) -> dict[str, Any]:
-        for output_name, output_handler in output_handlers.items():
-            if (validated_invocation_config.outputs_format is not None):
-                output_format = validated_invocation_config.outputs_format[output_name]
-                output_handler_method = output_format.value
-                method = getattr(output_handler, output_handler_method, None)
-                output_result = await method()
+    async def _resolve_outputs(self, invocation_config: InvocationConfig,
+                               response_handlers: dict[str, ResponseHandler]) -> dict[str, Any]:
+        output_configs = {output_config.display_title: output_config for output_config in invocation_config.outputs}
 
+        invocation_results = {}
+        for display_title, response_handler in response_handlers.items():
+            if invocation_config.outputs_format is None:
+                invocation_results[display_title] = await response_handler.bytes()
             else:
-                output_result = await output_handler.bytes()
+                output_config = output_configs[display_title]
+                consume_mode = output_config.consume_mode
 
-            output_handlers[output_name] = output_result
+                if consume_mode is None:
+                    invocation_results[display_title] = await response_handler.bytes
+                elif hasattr(response_handler, consume_mode.value):
+                    invocation_results[display_title] = getattr(response_handler, consume_mode.value, None)
+                else:
+                    raise ValueError(f"Unsupported response handler method: {consume_mode}")
 
-        return output_handlers
+        return invocation_results

@@ -7,9 +7,9 @@ from norman.objects.configs.model.parameter_config import ParameterConfig
 
 
 class SignatureConfig(BaseModel):
-    display_title: str = Field(..., description="Human-readable name for this input or output")
-    data_encoding: str = Field(..., description="Encoding format for the data")
-    receive_format: str = Field(..., description="Expected data format at runtime (e.g., 'File', 'Link', 'Primitive')")
+    display_title: str = Field(description="Human-readable name for this input or output")
+    data_encoding: str = Field(description="Encoding format for the data")
+    receive_format: str = Field(description="Expected data format at runtime (e.g., 'File', 'Link', 'Primitive')")
 
     parameters: list[ParameterConfig]
 
