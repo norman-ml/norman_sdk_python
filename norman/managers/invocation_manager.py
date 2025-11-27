@@ -142,8 +142,7 @@ class InvocationManager:
 
         return response_handlers
 
-    async def _resolve_outputs(self, invocation_config: InvocationConfig,
-                               response_handlers: dict[str, ResponseHandler]) -> dict[str, Any]:
+    async def _resolve_outputs(self, invocation_config: InvocationConfig, response_handlers: dict[str, ResponseHandler]) -> dict[str, Any]:
         output_configs = {output_config.display_title: output_config for output_config in invocation_config.outputs}
 
         invocation_results = {}
@@ -155,7 +154,7 @@ class InvocationManager:
                 consume_mode = output_config.consume_mode
 
                 if consume_mode is None:
-                    invocation_results[display_title] = await response_handler.bytes
+                    invocation_results[display_title] = await response_handler.bytes()
                 elif hasattr(response_handler, consume_mode.value):
                     invocation_results[display_title] = getattr(response_handler, consume_mode.value, None)
                 else:
