@@ -1,16 +1,14 @@
 from typing import List, Optional, Dict
 
-from norman_objects.shared.models.aggregate_tag import AggregateTag
 from norman_objects.shared.models.http_request_type import HttpRequestType
 from norman_objects.shared.models.model_hosting_location import ModelHostingLocation
 from norman_objects.shared.models.model_type import ModelType
 from norman_objects.shared.models.output_format import OutputFormat
 from pydantic import BaseModel, Field
 
-from norman.objects.configs.model.aggregate_tag_config import AggregateTagConfig
 from norman.objects.configs.model.asset_config import AssetConfig
-from norman.objects.configs.model.signature_config import SignatureConfig
 from norman.objects.configs.model.model_tag_config import ModelTagConfig
+from norman.objects.configs.model.signature_config import SignatureConfig
 
 
 class ModelConfig(BaseModel):
@@ -31,4 +29,3 @@ class ModelConfig(BaseModel):
     hosting_location: Optional[ModelHostingLocation] = Field(None, description="Hosting location of the model")
     http_headers: Optional[Dict[str, str]] = Field(None, description="Optional HTTP headers passed to external models when called over HTTP")
     user_added_tags: Optional[List[ModelTagConfig]] = Field(None, description="Optional list of tags assigned to this model by the uploading user")
-    tags: Optional[List[AggregateTagConfig]] = Field(None, description="Optional list of aggregate tags assigned to this model by all users (empty at creation, defined for completeness)")

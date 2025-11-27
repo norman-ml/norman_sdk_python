@@ -67,12 +67,6 @@ class ModelFactory(metaclass=Singleton):
         if model_config.http_headers is not None:
             http_headers = model_config.http_headers
 
-        tags: list[AggregateTag] = []
-        if model_config.tags is not None:
-            for aggregate_tag_config in model_config.tags:
-                created = AggregateTagFactory.create(aggregate_tag_config)
-                tags.append(created)
-
         user_added_tags = []
         if model_config.user_added_tags is not None:
             for tag_config in model_config.user_added_tags:
@@ -80,6 +74,9 @@ class ModelFactory(metaclass=Singleton):
                 user_added_tags.append(created)
 
         model = Model(
+            account_id=ModelFactory.authentication_manager.account_id,
+            version_label=model_config.version_label,
+            active=True,
             name=model_config.name,
             model_class=model_class,
             url=url,
@@ -87,14 +84,13 @@ class ModelFactory(metaclass=Singleton):
             model_type=model_type,
             hosting_location=hosting_location,
             output_format=output_format,
-            long_description=model_config.long_description,
-            account_id=AuthenticationManager().account_id,
-            version_label=model_config.version_label,
-            active=True,
             short_description=model_config.short_description,
+            long_description=model_config.long_description,
             inputs=inputs,
             outputs=outputs,
-            assets=assets
+            http_headers=http_headers,
+            assets=assets,
+            user_added_tags=user_added_tags
         )
 
         return model
