@@ -14,6 +14,7 @@ from norman.objects.configs.model.signature_config import SignatureConfig
 class ModelConfig(BaseModel):
     name: str = Field(description="Unique name of the model")
     version_label: str = Field(description="Human readable version label (e.g., 'v1.0' or 'beta')")
+    model_class: str = Field(description="Class name or identifier for the task the model solves")
     short_description: str = Field(description="Concise summary describing what the model does")
     long_description: str = Field(description="Detailed explanation of the model, usage, and behavior")
 
@@ -21,7 +22,6 @@ class ModelConfig(BaseModel):
     outputs: List[SignatureConfig] = Field(description="Output signatures defining model outputs and their formats")
     assets: List[AssetConfig] = Field(description="List of associated model assets for display and execution")
 
-    model_class: Optional[str] = Field(None, description="Class name or identifier for the task the model solves")
     request_type: Optional[HttpRequestType] = Field(None, description="Optional HTTP request type used for inference")
     model_type: Optional[ModelType] = Field(None, description="Optional model type or framework")
     output_format: Optional[OutputFormat] = Field(None, description="Optional format in which model outputs are returned")

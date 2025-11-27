@@ -9,11 +9,11 @@ class ParameterFactory(metaclass=Singleton):
 
     @staticmethod
     def create(parameter_config: ParameterConfig) -> ModelParam:
-        modality = ParameterModalityResolver.resolve(parameter_config.data_encoding)
+        data_modality = ParameterModalityResolver.resolve(parameter_config.data_encoding)
         model_param = ModelParam(
             data_encoding=parameter_config.data_encoding,
             parameter_name=parameter_config.parameter_name,
-            data_modality=modality
+            data_modality=data_modality
         )
 
         return model_param

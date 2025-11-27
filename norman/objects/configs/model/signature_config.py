@@ -9,6 +9,7 @@ from norman.objects.configs.model.parameter_config import ParameterConfig
 
 class SignatureConfig(BaseModel):
     display_title: str = Field(description="Human readable name for the model signature")
+    data_modality: str = Field(description="Name or identifier describing and categorizing the contents passed to the model signature")
     data_encoding: str = Field(description="Encoding format in which the model expects to receive inputs for the model signature")
     receive_format: ReceiveFormat = Field(description="How the model expects to receive inputs for the model signature")
 

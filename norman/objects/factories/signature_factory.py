@@ -12,9 +12,7 @@ class SignatureFactory(metaclass=Singleton):
 
     @staticmethod
     def create(signature_config: SignatureConfig, signature_type: SignatureType) -> ModelSignature:
-        parameters = []
-
-        modality = SignatureModalityResolver.resolve(signature_config.data_encoding)
+        data_modality = SignatureModalityResolver.resolve(signature_config.data_encoding)
 
         http_location = HttpLocation.Body
         if signature_config.http_location is not None:
@@ -28,20 +26,27 @@ class SignatureFactory(metaclass=Singleton):
         if signature_config.default_value is not None:
             default_value = signature_config.default_value
 
+        parameters = []
         for parameter in signature_config.parameters:
             parameters.append(ParameterFactory.create(parameter))
 
+        # Currently not defined by users, defined for completeness
+        transforms = []
+        signature_args = {}
+
         model_signature = ModelSignature(
             signature_type=signature_type,
-            data_modality=modality,
-            data_domain=modality,
+            data_modality=data_modality,
+            data_domain=signature_config.data_domain,
             data_encoding=signature_config.data_encoding,
             receive_format=signature_config.receive_format,
             http_location=http_location,
             hidden=hidden,
             display_title=signature_config.display_title,
             default_value=default_value,
-            parameters=parameters
+            parameters=parameters,
+            transforms=transforms,
+            signature_args=signature_args
         )
 
         return model_signature
