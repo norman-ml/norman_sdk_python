@@ -32,7 +32,6 @@ class InvocationManager:
         self._http_client = HttpClient()
 
         self._file_pull_service = FilePull()
-        self._file_push_service = FilePush()
         self._persist_service = Persist()
         self._retrieve_service = Retrieve()
 

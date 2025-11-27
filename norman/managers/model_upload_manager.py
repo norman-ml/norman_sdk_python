@@ -4,7 +4,6 @@ from typing import Any
 from norman.helpers.input_source_resolver import InputSourceResolver
 from norman_core.clients.http_client import HttpClient
 from norman_core.services.file_pull.file_pull import FilePull
-from norman_core.services.file_push.file_push import FilePush
 from norman_core.services.persist import Persist
 from norman_objects.services.file_pull.requests.asset_download_request import AssetDownloadRequest
 from norman_objects.services.file_push.pairing.socket_asset_pairing_request import SocketAssetPairingRequest
@@ -30,7 +29,6 @@ class ModelUploadManager:
         self._http_client = HttpClient()
 
         self._file_pull_service = FilePull()
-        self._file_push_service = FilePush()
         self._persist_service = Persist()
 
     async def upload_model(self, model_config: dict[str, Any]) -> Model:
