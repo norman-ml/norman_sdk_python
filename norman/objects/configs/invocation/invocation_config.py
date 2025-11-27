@@ -8,5 +8,5 @@ from norman.objects.configs.invocation.invocation_output_config import Invocatio
 
 class InvocationConfig(BaseModel):
     model_name: str = Field(description="Name of the model to invoke")
-    inputs: List[InvocationInputConfig] = Field(description="List of model input configurations")
-    outputs: Optional[List[InvocationOutputConfig]] = Field(None, description="Mapping of output names to their formats")
+    inputs: List[InvocationInputConfig] = Field(description="List of invocation input configurations")
+    outputs: Optional[List[InvocationOutputConfig]] = Field(default=None, description="Mapping of output names to their formats")
