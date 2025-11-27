@@ -53,7 +53,7 @@ class AuthenticationManager(metaclass=Singleton):
     async def _login_with_api_key(self) -> None:
         async with self._http_client:
             if self._api_key is None or self._api_key == "":
-                raise ValueError("API key is required. Please provide a valid API key.")
+                raise ValueError("API key is required. Please provide a valid API key")
 
             login_request = ApiKeyLoginRequest(api_key=Sensitive(self._api_key))
             login_response = await self._authentication_service.login.login_with_key(login_request)

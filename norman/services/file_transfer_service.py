@@ -40,7 +40,7 @@ class FileTransferService(metaclass=Singleton):
         elif isinstance(pairing_request, SocketInputPairingRequest):
             socket_info = await self._file_push_service.allocate_socket_for_input(token, pairing_request)
         else:
-            raise TypeError("Unsupported pairing request type Expected SocketAssetPairingRequest or SocketInputPairingRequest.")
+            raise TypeError("Unsupported pairing request type Expected SocketAssetPairingRequest or SocketInputPairingRequest")
 
         checksum = await SocketClient.write_and_digest(socket_info, buffer)
         checksum_request = ChecksumRequest(pairing_id=socket_info.pairing_id, checksum=checksum)

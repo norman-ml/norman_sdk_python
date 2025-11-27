@@ -1,13 +1,17 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 
+from norman_objects.shared.models.aggregate_tag import AggregateTag
+from norman_objects.shared.models.http_request_type import HttpRequestType
 from norman_objects.shared.models.model_hosting_location import ModelHostingLocation
+from norman_objects.shared.models.model_type import ModelType
+from norman_objects.shared.models.output_format import OutputFormat
 from pydantic import BaseModel, Field
 
+from norman.objects.configs.model.aggregate_tag_config import AggregateTagConfig
 from norman.objects.configs.model.asset_config import AssetConfig
 from norman.objects.configs.model.signature_config import SignatureConfig
-from norman_objects.shared.models.output_format import OutputFormat
-from norman_objects.shared.models.model_type import ModelType
-from norman_objects.shared.models.http_request_type import HttpRequestType
+from norman.objects.configs.model.model_tag_config import ModelTagConfig
+
 
 class ModelConfig(BaseModel):
     name: str = Field(description="Unique name of the model")
@@ -19,9 +23,12 @@ class ModelConfig(BaseModel):
     outputs: List[SignatureConfig] = Field(description="Output signatures defining model outputs and their formats")
     assets: List[AssetConfig] = Field(description="List of associated model assets for display and execution")
 
-    output_format: Optional[OutputFormat] = Field(None, description="Optional format in which model outputs are returned")
-    model_type: Optional[ModelType] = Field(None, description="Optional model type or framework")
-    request_type: Optional[HttpRequestType] = Field(None, description="Optional HTTP request type used for inference")
     model_class: Optional[str] = Field(None, description="Class name or identifier for the task the model solves")
-    hosting_location: Optional[ModelHostingLocation] = Field(None, description="Hosting location of the model")
+    request_type: Optional[HttpRequestType] = Field(None, description="Optional HTTP request type used for inference")
+    model_type: Optional[ModelType] = Field(None, description="Optional model type or framework")
+    output_format: Optional[OutputFormat] = Field(None, description="Optional format in which model outputs are returned")
     url: Optional[str] = Field(None, description="URL pointing to the model, required for external models")
+    hosting_location: Optional[ModelHostingLocation] = Field(None, description="Hosting location of the model")
+    http_headers: Optional[Dict[str, str]] = Field(None, description="Optional HTTP headers passed to external models when called over HTTP")
+    user_added_tags: Optional[List[ModelTagConfig]] = Field(None, description="Optional list of tags assigned to this model by the uploading user")
+    tags: Optional[List[AggregateTagConfig]] = Field(None, description="Optional list of aggregate tags assigned to this model by all users (empty at creation, defined for completeness)")
