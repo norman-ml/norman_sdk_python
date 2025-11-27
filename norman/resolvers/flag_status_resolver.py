@@ -18,33 +18,34 @@ class FlagStatusResolver:
 
     async def wait_for_entities(self, token: Sensitive[str], entity_ids: Sequence[str]) -> None:
         flag_constraints = QueryConstraints.includes("Status_Flags", "Entity_ID", list(entity_ids))
-        operation_start = time.time()
+        wait_start_time = time.time()
+        wait_end_time = wait_start_time + self._timeout_seconds
 
-        while time.time() < operation_start + self._timeout_seconds:
-            loop_iteration_start = time.time()
+        while time.time() < wait_end_time:
+            iteration_start_time = time.time()
 
-            results = await self._persist_service.status_flags.get_status_flags(token, flag_constraints)
-            if results is None:
+            status_flags = await self._persist_service.status_flags.get_status_flags(token, flag_constraints)
+            if status_flags is None:
                 raise ValueError("No status flags found for entities")
 
-            all_flags: list[StatusFlag] = []
-            for flag_list in results.values():
-                for flag in flag_list:
-                    all_flags.append(flag)
+            flattened_flags = []
+            for flag_list in status_flags.values():
+                flattened_flags += flag_list
 
-            any_flag_failed = any(flag.flag_value == StatusFlagValue.Error for flag in all_flags)
-            all_flags_finished = all(flag.flag_value == StatusFlagValue.Finished for flag in all_flags)
-
-            if any_flag_failed:
-                raise ValueError("One or more entities failed")
+            all_flags_finished = True
+            for status_flag in flattened_flags:
+                if status_flag.flag_value == StatusFlagValue.Error:
+                    raise ValueError("Status flags at error state - One or more entities have failed")
+                elif status_flag.flag_value != StatusFlagValue.Error:
+                    all_flags_finished = False
 
             if all_flags_finished:
                 return
 
-            now = time.time()
-            iteration_duration = now - loop_iteration_start
+            loop_iteration_end = time.time()
+            iteration_duration = loop_iteration_end - iteration_start_time
             wait_time = NormanAppConfig.get_flags_interval - iteration_duration
             if wait_time > 0:
                 await asyncio.sleep(wait_time)
 
-        raise TimeoutError("Timed out waiting for entities")
+        raise TimeoutError("Status flags did not finish - Timed out waiting for entities")

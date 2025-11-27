@@ -1,11 +1,10 @@
-import os
+import asyncio
 from io import IOBase
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
 from norman_objects.shared.inputs.input_source import InputSource
-import asyncio
 
 
 class InputSourceResolver:
@@ -13,8 +12,16 @@ class InputSourceResolver:
     def resolve(data: Any) -> InputSource:
         if data is None:
             raise ValueError("Input data cannot be None")
+        elif isinstance(data, Path):
+            if data.exists():
+                return InputSource.File
 
-        if isinstance(data, str):
+            raise FileNotFoundError("No file exists at the specified location")
+        elif InputSourceResolver._is_async_stream(data):
+            return InputSource.Stream
+        elif InputSourceResolver._is_sync_stream(data):
+            return InputSource.Stream
+        elif isinstance(data, str):
             stripped = data.strip()
 
             if InputSourceResolver._is_url(stripped):
@@ -24,29 +31,13 @@ class InputSourceResolver:
             if path.exists():
                 return InputSource.File
 
-            if os.sep in stripped:
-                raise FileNotFoundError("Resolved data as a file path, but no file exists at the specified location")
-
             return InputSource.Primitive
-
-        elif isinstance(data, Path):
-            if data.exists():
-                return InputSource.File
-
-            raise FileNotFoundError("No file exists at the specified location")
-
-        elif InputSourceResolver._is_async_stream(data):
-            return InputSource.Stream
-
-        elif InputSourceResolver._is_sync_stream(data):
-            return InputSource.Stream
-
         else:
             return InputSource.Primitive
 
     @staticmethod
-    def _is_url(stripped_string: str):
-        parsed = urlparse(stripped_string)
+    def _is_url(data: str):
+        parsed = urlparse(data)
         if parsed.scheme not in ["http", "https"]:
             return False
         elif parsed.netloc is None or parsed.netloc == "":
@@ -59,24 +50,32 @@ class InputSourceResolver:
         if isinstance(obj, IOBase):
             return True
 
-        has_read = callable(getattr(obj, "read", None))
-        has_iter = callable(getattr(obj, "__iter__", None)) or callable(getattr(obj, "__next__", None))
+        read_attribute = getattr(obj, "read", None)
+        if not callable(read_attribute):
+            return False
 
-        return has_read and has_iter
+        iter_attribute = getattr(obj, "__iter__", None)
+        if not callable(iter_attribute):
+            return False
+
+        next_attribute = getattr(obj, "__next__", None)
+        if not callable(next_attribute):
+            return False
+
+        return True
 
     @staticmethod
     def _is_async_stream(obj: Any) -> bool:
-        aiter_def = getattr(obj, "__aiter__", None)
-        if not callable(aiter_def):
+        aiter_attribute = getattr(obj, "__aiter__", None)
+        if not callable(aiter_attribute):
             return False
 
-        anext_def = getattr(obj, "__anext__", None)
-        if callable(anext_def):
-            return True
+        anext_attribute = getattr(obj, "__anext__", None)
+        if not callable(anext_attribute):
+            return False
 
-        read_attr = getattr(obj, "read", None)
-        if callable(read_attr):
-            if asyncio.iscoroutinefunction(read_attr):
-                return True
+        read_attribute = getattr(obj, "read", None)
+        if not callable(read_attribute) or not asyncio.iscoroutinefunction(read_attribute):
+            return False
 
-        return False
+        return True

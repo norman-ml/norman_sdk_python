@@ -2,32 +2,32 @@ from norman_objects.shared.parameters.data_modality import DataModality
 
 
 class SignatureModalityResolver:
-    _ENCODING_MAP = {
-        # Image
-        "jpg":  DataModality.Image,
-        "jpeg": DataModality.Image,
-        "png":  DataModality.Image,
-
+    _Encoding_Map = {
         # Audio (container level)
+        "aac": DataModality.Audio,
         "mp3": DataModality.Audio,
         "wav": DataModality.Audio,
 
-        # Video (container level)
-        "mp4": DataModality.Video,
-        "avi": DataModality.Video,
+        # Image
+        "jpg": DataModality.Image,
+        "jpeg": DataModality.Image,
+        "png": DataModality.Image,
 
         # Text
-        "txt":   DataModality.Text
+        "txt": DataModality.Text,
+
+        # Video (container level)
+        "avi": DataModality.Video,
+        "mp4": DataModality.Video
     }
 
     @staticmethod
     def resolve(encoding: str) -> DataModality:
-        if not encoding or not isinstance(encoding, str):
+        if encoding is None or not isinstance(encoding, str):
             raise ValueError("encoding must be a non-empty string")
 
-        encoding = encoding.lower().strip()
+        stripped_encoding = encoding.lower().strip()
+        if stripped_encoding not in SignatureModalityResolver._Encoding_Map:
+            raise ValueError(f"Unknown signature encoding: {stripped_encoding}")
 
-        if encoding not in SignatureModalityResolver._ENCODING_MAP:
-            raise ValueError(f"Unknown signature encoding: {encoding}")
-
-        return SignatureModalityResolver._ENCODING_MAP[encoding]
+        return SignatureModalityResolver._Encoding_Map[stripped_encoding]
