@@ -2,8 +2,8 @@ from typing import Any
 
 from norman_utils_external.singleton import Singleton
 
-from norman.helpers.input_source_resolver import InputSourceResolver
 from norman.objects.configs.invocation.invocation_config import InvocationConfig
+from norman.resolvers.input_source_resolver import InputSourceResolver
 
 
 class InvocationConfigFactory(metaclass=Singleton):

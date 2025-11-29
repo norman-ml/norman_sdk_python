@@ -1,11 +1,11 @@
+from norman_objects.shared.model_signatures.http_location import HttpLocation
 from norman_objects.shared.model_signatures.model_signature import ModelSignature
+from norman_objects.shared.model_signatures.signature_type import SignatureType
 from norman_utils_external.singleton import Singleton
 
-from norman.helpers.signature_modality_resolver import SignatureModalityResolver
 from norman.objects.configs.model.signature_config import SignatureConfig
 from norman.objects.factories.parameter_factory import ParameterFactory
-from norman_objects.shared.model_signatures.http_location import HttpLocation
-from norman_objects.shared.model_signatures.signature_type import SignatureType
+from norman.resolvers.signature_modality_resolver import SignatureModalityResolver
 
 
 class SignatureFactory(metaclass=Singleton):

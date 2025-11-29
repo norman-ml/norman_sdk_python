@@ -12,11 +12,11 @@ from norman_utils_external.singleton import Singleton
 
 
 class AuthenticationManager(metaclass=Singleton):
-    def __init__(self, api_key: str) -> None:
+    def __init__(self) -> None:
         self._authentication_service = Authenticate()
         self._http_client = HttpClient()
 
-        self._api_key = api_key
+        self._api_key = None
         self._account_id = None
         self._access_token: Optional[Sensitive[str]] = None
         self._id_token: Optional[Sensitive[str]] = None
@@ -30,6 +30,9 @@ class AuthenticationManager(metaclass=Singleton):
     @property
     def account_id(self) -> Optional[str]:
         return self._account_id
+
+    def set_api_key(self, api_key: str) -> None:
+        self._api_key = api_key
 
     def access_token_expired(self) -> bool:
         if self._access_token is None:

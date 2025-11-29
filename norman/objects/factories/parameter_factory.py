@@ -1,8 +1,8 @@
 from norman_objects.shared.parameters.model_param import ModelParam
 from norman_utils_external.singleton import Singleton
 
-from norman.helpers.parameter_modality_resolver import ParameterModalityResolver
 from norman.objects.configs.model.parameter_config import ParameterConfig
+from norman.resolvers.parameter_modality_resolver import ParameterModalityResolver
 
 
 class ParameterFactory(metaclass=Singleton):

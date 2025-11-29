@@ -10,7 +10,9 @@ from norman.managers.model_upload_manager import ModelUploadManager
 
 class Norman(metaclass=Singleton):
     def __init__(self, api_key: str):
-        self._authentication_manager = AuthenticationManager(api_key)
+        self._authentication_manager = AuthenticationManager()
+        self._authentication_manager.set_api_key(api_key)
+
         self._invocation_manager = InvocationManager()
         self._model_upload_manager = ModelUploadManager()
 

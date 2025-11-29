@@ -1,7 +1,6 @@
 import os
 from typing import Any
 
-from norman.helpers.input_source_resolver import InputSourceResolver
 from norman_core.clients.http_client import HttpClient
 from norman_core.services.file_pull.file_pull import FilePull
 from norman_core.services.persist import Persist
@@ -17,6 +16,7 @@ from norman.objects.configs.model.asset_config import AssetConfig
 from norman.objects.configs.model.model_config import ModelConfig
 from norman.objects.factories.model_factory import ModelFactory
 from norman.resolvers.flag_status_resolver import FlagStatusResolver
+from norman.resolvers.input_source_resolver import InputSourceResolver
 from norman.services.file_transfer_service import FileTransferService
 
 
@@ -58,7 +58,7 @@ class ModelUploadManager:
     async def _handle_asset_upload(self, token: Sensitive[str], model_asset: ModelAsset, asset: AssetConfig) -> None:
         data = asset.data
 
-        if data.source is not None:
+        if asset.source is not None:
             source = asset.data
         else:
             source = InputSourceResolver.resolve(data)

@@ -8,11 +8,8 @@ from norman_utils_external.singleton import Singleton
 
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.model.model_config import ModelConfig
-from norman.objects.factories.aggregate_tag_factory import AggregateTagFactory
 from norman.objects.factories.asset_factory import AssetFactory
 from norman.objects.factories.signature_factory import SignatureFactory
-from norman_objects.shared.models.aggregate_tag import AggregateTag
-
 from norman.objects.factories.tag_factory import TagFactory
 
 

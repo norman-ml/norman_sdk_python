@@ -17,12 +17,7 @@ class FileTransferService(metaclass=Singleton):
     def __init__(self) -> None:
         self._file_push_service = FilePush()
 
-    async def upload_primitive(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], data: Union[bytes, str]) -> None:
-        if isinstance(data, (bytes, bytearray)):
-            payload = data
-        else:
-            payload = str(data).encode()
-        buffer = io.BytesIO(payload)
+    async def upload_primitive(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], buffer: io.BytesIO) -> None:
         await self.upload_from_buffer(token, pairing_request, buffer)
 
     async def upload_file(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], path: Union[str, Path]) -> None:
@@ -40,3 +35,23 @@ class FileTransferService(metaclass=Singleton):
         checksum = await SocketClient.write_and_digest(socket_info, buffer)
         checksum_request = ChecksumRequest(pairing_id=socket_info.pairing_id, checksum=checksum)
         await self._file_push_service.complete_file_transfer(token, checksum_request)
+
+    def normalize_primitive_data(self, data: Any) -> io.BytesIO:
+        if isinstance(data, str):
+            return io.BytesIO(data.encode("utf-8"))
+
+        elif isinstance(data, (bytes, bytearray)):
+            return io.BytesIO(data)
+
+        elif isinstance(data, io.BytesIO):
+            return data
+
+        elif isinstance(data, (int, float)):
+            return io.BytesIO(str(data).encode("utf-8"))
+
+        elif isinstance(data, (dict, list)):
+            json_str = json.dumps(data)
+            return io.BytesIO(json_str.encode("utf-8"))
+
+        else:
+            raise ValueError(f"Unsupported data type: {type(data)}. Cannot convert to BytesIO.")

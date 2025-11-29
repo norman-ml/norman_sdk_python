@@ -36,7 +36,7 @@ class FlagStatusResolver:
             for status_flag in flattened_flags:
                 if status_flag.flag_value == StatusFlagValue.Error:
                     raise ValueError("Status flags at error state - One or more entities have failed")
-                elif status_flag.flag_value != StatusFlagValue.Error:
+                if status_flag.flag_value != StatusFlagValue.Finished:
                     all_flags_finished = False
 
             if all_flags_finished:

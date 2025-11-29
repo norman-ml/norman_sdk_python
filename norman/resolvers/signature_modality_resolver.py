@@ -15,6 +15,8 @@ class SignatureModalityResolver:
 
         # Text
         "txt": DataModality.Text,
+        "utf-8": DataModality.Text,
+        "utf-16": DataModality.Text,
 
         # Video (container level)
         "avi": DataModality.Video,

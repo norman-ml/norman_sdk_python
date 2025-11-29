@@ -7,7 +7,7 @@ class ResponseHandler:
 
     async def bytes(self) -> bytes:
         bytes_result = bytearray()
-        stream =  await self.__callable_coroutine
+        headers, stream = await self.__callable_coroutine
 
         async for chunk in stream:
             bytes_result.extend(chunk)
@@ -15,5 +15,5 @@ class ResponseHandler:
         return bytes_result
 
     async def stream(self) -> Any:
-        stream = await self.__callable_coroutine
+        headers, stream = await self.__callable_coroutine
         return stream
