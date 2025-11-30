@@ -182,3 +182,4 @@ cython_debug/
 
 test.py
 upload_model_test.py
+unit_tests/
