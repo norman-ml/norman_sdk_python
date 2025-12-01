@@ -6,7 +6,7 @@ from norman.objects.configs.model.asset_config import AssetConfig
 
 
 class AssetFactory(metaclass=Singleton):
-    authentication_manager = AuthenticationManager() # API omitted in purpose (supplied by the user)
+    authentication_manager = AuthenticationManager()
 
     @staticmethod
     def create(asset_config: AssetConfig) -> ModelAsset:

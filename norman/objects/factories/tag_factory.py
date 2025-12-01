@@ -6,7 +6,7 @@ from norman.objects.configs.model.model_tag_config import ModelTagConfig
 
 
 class TagFactory(metaclass=Singleton):
-    authentication_manager = AuthenticationManager() # API omitted in purpose (supplied by the user)
+    authentication_manager = AuthenticationManager()
 
     @staticmethod
     def create(tag_config: ModelTagConfig) -> ModelTag:

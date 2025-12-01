@@ -25,7 +25,7 @@ from norman.services.file_transfer_service import FileTransferService
 
 class InvocationManager:
     def __init__(self) -> None:
-        self._authentication_manager = AuthenticationManager() # API omitted in purpose (supplied by the user)
+        self._authentication_manager = AuthenticationManager()
         self._file_transfer_service = FileTransferService()
         self._file_utils = FileUtils()
         self._flag_status_resolver = FlagStatusResolver()
@@ -81,17 +81,17 @@ class InvocationManager:
             raise ValueError(f"Unsupported input source: {source}")
 
     async def _upload_primitive_input(self, token: Sensitive[str], invocation_input: InvocationSignature, data: Any) -> None:
-        normalize_data = self._file_transfer_service.normalize_primitive_data(data)
-        file_size = self._file_utils.get_buffer_size(normalize_data)
+        byte_buffer = self._file_transfer_service.normalize_primitive_data(data)
+        buffer_size = self._file_utils.get_buffer_size(byte_buffer)
         pairing_request = SocketInputPairingRequest(
             invocation_id=invocation_input.invocation_id,
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
-            file_size_in_bytes=file_size
+            file_size_in_bytes=buffer_size
         )
 
-        await self._file_transfer_service.upload_primitive(token, pairing_request, normalize_data)
+        await self._file_transfer_service.upload_from_buffer(token, pairing_request, byte_buffer)
 
     async def _upload_file_input(self, token: Sensitive[str], invocation_input: InvocationSignature, path: str) -> None:
         file_size = os.path.getsize(path)
@@ -143,28 +143,27 @@ class InvocationManager:
         return response_handlers
 
     async def _resolve_outputs(self, invocation_config: InvocationConfig, response_handlers: dict[str, ResponseHandler]) -> dict[str, Any]:
-        user_provided_outputs = True if invocation_config.outputs is not None else False
-
-        if user_provided_outputs:
-            output_configs = {output_config.display_title: output_config for output_config in invocation_config.outputs}
+        output_configs = {}
+        if invocation_config.outputs is not None:
+            for output_config in invocation_config.outputs:
+                output_configs[output_config.display_title] = output_config
 
         invocation_results = {}
-
         for display_title, response_handler in response_handlers.items():
-            if not user_provided_outputs:
-                invocation_results[display_title] = await response_handler.bytes()
-                continue
+            if display_title in output_configs:
+                output_config = output_configs[display_title]
+                consume_mode = output_config.consume_mode
 
-            output_config = output_configs[display_title]
-            consume_mode = output_config.consume_mode
+                if consume_mode is None:
+                    method = response_handler.bytes
+                else:
+                    if not hasattr(response_handler, consume_mode.value):
+                        raise ValueError(f"Unsupported response handler method: {consume_mode}")
 
-            if consume_mode is None:
-                invocation_results[display_title] = await response_handler.bytes()
+                    method = getattr(response_handler, consume_mode.value)
             else:
-                if not hasattr(response_handler, consume_mode.value):
-                    raise ValueError(f"Unsupported response handler method: {consume_mode}")
+                method = response_handler.bytes
 
-                method = getattr(response_handler, consume_mode.value)
-                invocation_results[display_title] = await method()
+            invocation_results[display_title] = await method()
 
         return invocation_results

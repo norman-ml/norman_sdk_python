@@ -22,7 +22,7 @@ from norman.services.file_transfer_service import FileTransferService
 
 class ModelUploadManager:
     def __init__(self) -> None:
-        self._authentication_manager = AuthenticationManager() # API omitted in purpose (supplied by the user)
+        self._authentication_manager = AuthenticationManager()
         self._file_transfer_service = FileTransferService()
         self._file_utils = FileUtils()
         self._flag_status_resolver = FlagStatusResolver()

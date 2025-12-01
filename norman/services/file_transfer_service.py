@@ -17,9 +17,6 @@ class FileTransferService(metaclass=Singleton):
     def __init__(self) -> None:
         self._file_push_service = FilePush()
 
-    async def upload_primitive(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], buffer: io.BytesIO) -> None:
-        await self.upload_from_buffer(token, pairing_request, buffer)
-
     async def upload_file(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], path: Union[str, Path]) -> None:
         async with aiofiles.open(path, mode="rb") as file:
             await self.upload_from_buffer(token, pairing_request, file)
