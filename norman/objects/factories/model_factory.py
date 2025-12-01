@@ -71,7 +71,7 @@ class ModelFactory(metaclass=Singleton):
                 user_added_tags.append(created)
 
         model = Model(
-            account_id="ModelFactory.authentication_manager.account_id",
+            account_id=ModelFactory.authentication_manager.account_id,
             version_label=model_config.version_label,
             active=True,
             name=model_config.name,
