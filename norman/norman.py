@@ -231,9 +231,12 @@ class Norman(metaclass=Singleton):
 
                 - **display_title** (`str`) – Human-readable label (e.g., `"Input image"`).
                 - **data** (`Any`) – The actual payload (path, bytes, or text).
-                  - **source** (`str`, `Optional`) – Where the input comes from (`"File"`, `"Link", `"Primitive" or `"Stream"`)
+                - **source** (`str`, `Optional`) – Where the input comes from (`"File"`, `"Link", `"Primitive" or `"Stream"`)
 
-            - **outputs_format** (`Optional[dict[str, str]]`) - Mapping of output names to desired formats, key is the output name and value is the desired format(`"bytes"` or `"stream"`)
+            - **outputs** (`Optional[List[dict]]`) - Mapping of output names to desired formats, key is the output name and value is the desired format(`"bytes"` or `"stream"`)
+
+                - **display_title** (`str`) – Human-readable label of the output (e.g., `"Output image"`).
+                - **consume_mode** (`str`, `Optional`) – How the data will be consumed (e.g. bytes or stream).
 
         **Response Structure**
 
