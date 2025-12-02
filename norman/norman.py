@@ -107,12 +107,16 @@ class Norman(metaclass=Singleton):
 
             - **version_label** (`str`) — Human-readable version label (e.g., `"v1.0"`, `"beta"`).
 
+            - **model_class** (`str`) — Class name or identifier for the task the model solves.
+
             - **short_description** (`str`) — Concise summary of what the model does.
 
             - **long_description** (`str`) — Detailed explanation of the model, usage, and behavior.
 
             - **inputs** (`List[dict]`) — Input signatures defining model inputs and their formats.
                 - **display_title** (`str`) — Human-readable name for the input.
+                - **data_modality** (`str`) — Name or identifier describing and categorizing the contents passed to the model signature.
+                - **data_domain** (`str`) — Subject area for the data passed to the model signature.
                 - **data_encoding** (`str`) — Encoding format for input data (e.g., `"UTF-8"`, `"binary"`).
                 - **receive_format** (`str`) — Expected input type (e.g., `"File"`, `"Link"`, `"Primitive"`).
                 - **parameters** (`List[dict]`) — Parameter definitions with:
@@ -131,23 +135,20 @@ class Norman(metaclass=Singleton):
                 - **data** (`Any`) — Asset content or reference (local path, URL, or binary).
                 - **source** (`Optional[str]`) — Origin of the asset (`"File"`, `"Link"`, `"Primitive"`).
 
-            - **output_format** (`Optional[str]`) —
-              Desired model output format (`"JSON"`, `"Binary"`).
+            - **request_type** (`Optional[str]`) —
+              HTTP request type used for inference (`"POST"`, `"GET"`).
 
             - **model_type** (`Optional[str]`) —
               Model type or framework (`"PyTorch"`, `"TensorFlow"`, etc.).
 
-            - **request_type** (`Optional[str]`) —
-              HTTP request type used for inference (`"POST"`, `"GET"`).
-
-            - **model_class** (`Optional[str]`) —
-              Fully qualified class name or identifier for the model implementation.
-
-            - **hosting_location** (`Optional[str]`) —
-              Where the model will be hosted (`"Internal"`, `"External"`).
+            - **output_format** (`Optional[str]`) —
+              Desired model output format (`"JSON"`, `"Binary"`).
 
             - **url** (`Optional[str]`) —
               External URL for models hosted outside Norman (required for external models).
+
+            - **hosting_location** (`Optional[str]`) —
+              Where the model will be hosted (`"Internal"`, `"External"`).
 
         **Response Structure**
 
@@ -176,6 +177,7 @@ class Norman(metaclass=Singleton):
         model_config = {
             "name": "image_reverser_model",
             "version_label": "beta",
+            "model_class": "image",
             "short_description": "A simple model that mirrors images.",
             "long_description": "Demonstrates image reversal for onboarding.",
             "assets": [
@@ -184,6 +186,8 @@ class Norman(metaclass=Singleton):
             "inputs": [
                 {
                     "display_title": "Input Image",
+                    "data_modality": "image",
+                    "data_domain": "image",
                     "data_encoding": "png",
                     "receive_format": "File",
                     "parameters": [{"parameter_name": "image", "data_encoding": "png"}]
@@ -192,6 +196,8 @@ class Norman(metaclass=Singleton):
             "outputs": [
                 {
                     "display_title": "Output Image",
+                    "data_modality": "image",
+                    "data_domain": "image",
                     "data_encoding": "png",
                     "receive_format": "File",
                     "parameters": [{"parameter_name": "mirror_image", "data_encoding": "png"}]
