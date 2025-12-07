@@ -50,7 +50,7 @@ class Norman(metaclass=Singleton):
         - ***username*** (`str`) - The username or email address to register.
           Must be unique across the Norman platform.
 
-        **Response Structure**
+        **Returns**
 
         - ***response*** (`dict[str, Any]`) - Dictionary containing account metadata and the generated API key.
 
@@ -81,7 +81,7 @@ class Norman(metaclass=Singleton):
 
         > ⚠️ **Important:**
         > Store your API key securely.
-        > API keys **cannot be regenerated** — if you lose yours, you’ll need to create a new account.
+        > API keys **cannot be regenerated** - if you lose yours, you’ll need to create a new account.
         """
         return await AuthenticationManager.signup_and_generate_key(username)
 
@@ -98,78 +98,78 @@ class Norman(metaclass=Singleton):
 
         **Parameters**
 
-        - ***model_config*** (`dict[str, Any]`) — Configuration matching the `ModelConfig` schema.
+        - ***model_config*** (`dict[str, Any]`) - Configuration matching the `ModelConfig` schema.
           Defines the model’s metadata, assets, inputs, outputs, and deployment attributes.
 
             **Root object (`dict`):**
 
-            - **name** (`str`) — Unique name of the model.
+            - **name** (`str`) - Unique name of the model.
 
-            - **version_label** (`str`) — Human-readable version label (e.g., `"v1.0"`, `"beta"`).
+            - **version_label** (`str`) - Human-readable version label (e.g., `"v1.0"`, `"beta"`).
 
-            - **model_class** (`str`) — Class name or identifier for the task the model solves.
+            - **model_class** (`str`) - Class name or identifier for the task the model solves.
 
-            - **short_description** (`str`) — Concise summary of what the model does.
+            - **short_description** (`str`) - Concise summary of what the model does.
 
-            - **long_description** (`str`) — Detailed explanation of the model, usage, and behavior.
+            - **long_description** (`str`) - Detailed explanation of the model, usage, and behavior.
 
-            - **inputs** (`List[dict]`) — Input signatures defining model inputs and their formats.
-                - **display_title** (`str`) — Human-readable name for the input.
-                - **data_modality** (`str`) — Name or identifier describing and categorizing the contents passed to the model signature.
-                - **data_domain** (`str`) — Subject area for the data passed to the model signature.
-                - **data_encoding** (`str`) — Encoding format for input data (e.g., `"UTF-8"`, `"binary"`).
-                - **receive_format** (`str`) — Expected input type (e.g., `"File"`, `"Link"`, `"Primitive"`).
-                - **parameters** (`List[dict]`) — Parameter definitions with:
-                    - **parameter_name** (`str`) — Name of the parameter.
-                    - **data_encoding** (`str`) — Encoding used for that parameter (e.g., `"float32"`).
-                - **http_location** (`Optional[str]`) — Optional HTTP field location (`"Body"`, `"Path"`, `"Query"`).
-                - **hidden** (`Optional[bool]`) — If `True`, hides this field in public interfaces.
-                - **default_value** (`Optional[str]`) — Default value if not explicitly provided.
+            - **inputs** (`List[dict]`) - Input signatures defining model inputs and their formats.
+                - **display_title** (`str`) - Human-readable name for the input.
+                - **data_modality** (`str`) - Name or identifier describing and categorizing the contents passed to the model signature.
+                - **data_domain** (`str`) - Subject area for the data passed to the model signature.
+                - **data_encoding** (`str`) - Encoding format for input data (e.g., `"UTF-8"`, `"binary"`).
+                - **receive_format** (`str`) - Expected input type (e.g., `"File"`, `"Link"`, `"Primitive"`).
+                - **parameters** (`List[dict]`) - Parameter definitions with:
+                    - **parameter_name** (`str`) - Name of the parameter.
+                    - **data_encoding** (`str`) - Encoding used for that parameter (e.g., `"float32"`).
+                - **http_location** (`Optional[str]`) - Optional HTTP field location (`"Body"`, `"Path"`, `"Query"`).
+                - **hidden** (`Optional[bool]`) - If `True`, hides this field in public interfaces.
+                - **default_value** (`Optional[str]`) - Default value if not explicitly provided.
 
-            - **outputs** (`List[dict]`) —
+            - **outputs** (`List[dict]`) -
               Output signatures defining model outputs and their formats.
               Structure mirrors `inputs`.
 
-            - **assets** (`List[dict]`) — List of assets (e.g., model weights, tokenizer files, configs).
-                - **asset_name** (`str`) — Identifier for the asset (e.g., `"weights"`, `"tokenizer"`).
-                - **data** (`Any`) — Asset content or reference (local path, URL, or binary).
-                - **source** (`Optional[str]`) — Origin of the asset (`"File"`, `"Link"`, `"Primitive"`).
+            - **assets** (`List[dict]`) - List of assets (e.g., model weights, tokenizer files, configs).
+                - **asset_name** (`str`) - Identifier for the asset (e.g., `"weights"`, `"tokenizer"`).
+                - **data** (`Any`) - Asset content or reference (local path, URL, or binary).
+                - **source** (`Optional[str]`) - Origin of the asset (`"File"`, `"Link"`, `"Primitive"`).
 
-            - **request_type** (`Optional[str]`) —
+            - **request_type** (`Optional[str]`) -
               HTTP request type used for inference (`"POST"`, `"GET"`).
 
-            - **model_type** (`Optional[str]`) —
+            - **model_type** (`Optional[str]`) -
               Model type or framework (`"PyTorch"`, `"TensorFlow"`, etc.).
 
-            - **output_format** (`Optional[str]`) —
+            - **output_format** (`Optional[str]`) -
               Desired model output format (`"JSON"`, `"Binary"`).
 
-            - **url** (`Optional[str]`) —
+            - **url** (`Optional[str]`) -
               External URL for models hosted outside Norman (required for external models).
 
-            - **hosting_location** (`Optional[str]`) —
+            - **hosting_location** (`Optional[str]`) -
               Where the model will be hosted (`"Internal"`, `"External"`).
 
-        **Response Structure**
+        **Returns**
 
-        - ***response*** (`Model`) —
+        - ***response*** (`Model`) -
           A `Model` object containing full metadata for the uploaded model.
 
-            - **account_id** (`str`) — ID of the account that owns the model.
-            - **active** (`bool`) — Indicates whether this model version is currently active.
-            - **assets** (`List[dict]`) — List of associated assets required by the model (e.g., weights, tokenizer files).
-            - **hosting_location** (`str`) — Specifies where the model is deployed (`"Internal"`, `"External"`, etc.).
-            - **id** (`str`) — Unique identifier assigned to the model by Norman.
-            - **inputs / outputs** (`List[dict]`) — Structured definitions describing the model’s expected inputs and produced outputs.
-            - **long_description** (`str`) — Detailed explanation of the model’s behavior, inputs, and use cases.
-            - **model_class** (`str`) — Fully qualified class name or implementation reference.
-            - **model_type** (`str`) — Underlying framework or runtime type (e.g., `"PyTorch"`, `"TensorFlow"`).
-            - **name** (`str`) — Human-readable name of the model.
-            - **output_format** (`str`) — Format of the model’s response payload (e.g., `"JSON"`, `"Binary"`).
-            - **request_type** (`str`) — HTTP method used for inference requests (e.g., `"POST"`, `"GET"`).
-            - **short_description** (`str`) — Concise summary of the model’s purpose or functionality.
-            - **tags** (`List[str]`) — User-defined tags for organization, categorization, or filtering.
-            - **version_label** (`str`) — Version or release tag for this model (e.g., `"v1.0"`, `"beta"`).
+            - **account_id** (`str`) - ID of the account that owns the model.
+            - **active** (`bool`) - Indicates whether this model version is currently active.
+            - **assets** (`List[dict]`) - List of associated assets required by the model (e.g., weights, tokenizer files).
+            - **hosting_location** (`str`) - Specifies where the model is deployed (`"Internal"`, `"External"`, etc.).
+            - **id** (`str`) - Unique identifier assigned to the model by Norman.
+            - **inputs / outputs** (`List[dict]`) - Structured definitions describing the model’s expected inputs and produced outputs.
+            - **long_description** (`str`) - Detailed explanation of the model’s behavior, inputs, and use cases.
+            - **model_class** (`str`) - Fully qualified class name or implementation reference.
+            - **model_type** (`str`) - Underlying framework or runtime type (e.g., `"PyTorch"`, `"TensorFlow"`).
+            - **name** (`str`) - Human-readable name of the model.
+            - **output_format** (`str`) - Format of the model’s response payload (e.g., `"JSON"`, `"Binary"`).
+            - **request_type** (`str`) - HTTP method used for inference requests (e.g., `"POST"`, `"GET"`).
+            - **short_description** (`str`) - Concise summary of the model’s purpose or functionality.
+            - **tags** (`List[str]`) - User-defined tags for organization, categorization, or filtering.
+            - **version_label** (`str`) - Version or release tag for this model (e.g., `"v1.0"`, `"beta"`).
 
 
         **Example Usage:**
@@ -244,7 +244,7 @@ class Norman(metaclass=Singleton):
                 - **display_title** (`str`) – Human-readable label of the output (e.g., `"Output image"`).
                 - **consume_mode** (`str`, `Optional`) – How the data will be consumed (e.g. bytes or stream).
 
-        **Response Structure**
+        **Returns**
 
         - ***response*** (`dict[str, bytearray]`) - A mapping of output names to their binary results.
 
