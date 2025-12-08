@@ -12,6 +12,50 @@ from norman_utils_external.singleton import Singleton
 
 
 class AuthenticationManager(metaclass=Singleton):
+    """
+    Centralized authentication handler for the Norman SDK. This manager
+    handles API-key–based authentication, token refresh, and storage of
+    identity metadata such as the authenticated user's `account_id`.
+
+    The manager maintains secure references to access tokens and ID tokens,
+    automatically refreshes expired credentials, and exposes helper methods
+    used throughout the SDK for authenticated operations.
+
+    Authentication follows this sequence:
+
+    - User provides an API key via `set_api_key()`
+    - The manager performs an API-key login using the `Authenticate` service
+    - Access and ID tokens are stored as `Sensitive[str]`
+    - Tokens are automatically refreshed when expired
+
+    **Constructor**
+
+    Initializes the underlying `Authenticate` and `HttpClient` services and
+    allocates internal fields for API key storage, tokens, and account ID.
+
+    **Attributes**
+
+    - **_authentication_service** (`Authenticate`)
+      Low-level authentication client used to perform logins and token exchange.
+
+    - **_http_client** (`HttpClient`)
+      Reusable HTTP session used for authenticated requests.
+
+    - **_api_key** (`Optional[str]`)
+      API key supplied by the user via `set_api_key()`.
+
+    - **_account_id** (`Optional[str]`)
+      ID of the authenticated account after a successful login.
+
+    - **_access_token** (`Optional[Sensitive[str]]`)
+      Cached access token used for API requests.
+
+    - **_id_token** (`Optional[Sensitive[str]]`)
+      Cached ID token for identity verification.
+
+    **Methods**
+    """
+
     def __init__(self) -> None:
         self._authentication_service = Authenticate()
         self._http_client = HttpClient()
@@ -23,22 +67,66 @@ class AuthenticationManager(metaclass=Singleton):
 
     @property
     def access_token(self) -> Sensitive[str]:
+        """
+        Retrieve the currently stored access token.
+
+        **Returns**
+
+        - **Sensitive[str]**
+            The active access token.
+
+        **Raises**
+
+        - **ValueError**
+            If no token has been obtained yet (user not logged in).
+        """
         if self._access_token is None:
             raise ValueError("Access token is not available — you may need to log in first")
         return self._access_token
 
     @property
     def account_id(self) -> Optional[str]:
+        """
+        Retrieve the authenticated user's account ID.
+
+        **Returns**
+
+        - **str | None**
+            Account ID if logged in, otherwise `None`.
+        """
         return self._account_id
 
     def set_api_key(self, api_key: str) -> None:
+        """
+        Store the API key that will be used to authenticate the user.
+
+        **Parameters**
+
+        - **api_key** (`str`)
+            The API key issued to the user.
+        """
         self._api_key = api_key
 
     def access_token_expired(self) -> bool:
+        """
+        Determine whether the current access token is expired.
+
+        Token expiration is computed by decoding the JWT without signature
+        verification (signature verification will be added once JWKS
+        support is enabled).
+
+        **Returns**
+
+        - **bool**
+            `True` if the access token is missing or expired; otherwise `False`.
+        """
         if self._access_token is None:
             return True
         try:
-            decoded = jwt.decode(self._access_token.value(), options={"verify_signature": False}) # we will add a jwks store to verify against in the near future.
+            decoded = jwt.decode(
+                self._access_token.value(),
+                options={"verify_signature": False}
+            )
             exp = decoded["exp"]
             now = datetime.now(timezone.utc).timestamp()
             return exp < now
@@ -47,13 +135,44 @@ class AuthenticationManager(metaclass=Singleton):
 
     @staticmethod
     async def signup_and_generate_key(username: str) -> SignupKeyResponse:
+        """
+        **Coroutine**
+
+        Register a new account and generate an API key for the user.
+
+        This static method exists because signup does not require an existing
+        authenticated session.
+
+        **Parameters**
+
+        - **username** (`str`)
+            Name to associate with the new account.
+
+        **Returns**
+
+        - **SignupKeyResponse**
+            Contains the generated API key and signup metadata.
+        """
         async with HttpClient():
-            authentication_service = Authenticate() # because signup_and_generate_key() is a static method
+            authentication_service = Authenticate()
             signup_request = SignupKeyRequest(name=username)
             signup_response = await authentication_service.signup.signup_and_generate_key(signup_request)
             return signup_response
 
     async def _login_with_api_key(self) -> None:
+        """
+        **Coroutine**
+
+        Perform an API-key-based login to obtain access and ID tokens.
+
+        This method is invoked internally whenever a valid session is required
+        but the stored token is missing or expired.
+
+        **Raises**
+
+        - **ValueError**
+            If an API key has not been provided via `set_api_key()`.
+        """
         async with self._http_client:
             if self._api_key is None or self._api_key == "":
                 raise ValueError("API key is required. Please provide a valid API key")
@@ -66,5 +185,16 @@ class AuthenticationManager(metaclass=Singleton):
             self._id_token = login_response.id_token
 
     async def invalidate_access_token(self) -> None:
+        """
+        **Coroutine**
+
+        Ensure that the current access token is valid. If the token is expired
+        or missing, this method will automatically trigger a fresh login using
+        the stored API key.
+
+        **Returns**
+
+        - **None**
+        """
         if self.access_token_expired:
             await self._login_with_api_key()

@@ -12,11 +12,57 @@ from norman._app_config import NormanAppConfig
 
 
 class FlagStatusResolver:
+    """
+    Utility class responsible for polling entity status flags until all
+    entities reach a terminal state. This resolver repeatedly checks the
+    `Status_Flags` stored in the Persist service and waits until every
+    entity reaches the `Finished` state or fails.
+
+    The resolver enforces a configurable timeout and interval between
+    polling cycles, both sourced from `NormanAppConfig`.
+
+    **Methods**
+    """
     def __init__(self):
         self._persist_service = Persist()
         self._timeout_seconds =  NormanAppConfig.flag_timeout_seconds
 
     async def wait_for_entities(self, token: Sensitive[str], entity_ids: Sequence[str]) -> None:
+        """
+        **Coroutine**
+
+        Wait until all specified entities have reached the `Finished` state,
+        polling the `Status_Flags` through the Persist service. The method
+        terminates early if any entity enters an `Error` state or if the
+        operation times out.
+
+        **Parameters**
+
+        - **token** (`Sensitive[str]`)
+            Authentication token granting access to Persist service queries.
+
+        - **entity_ids** (`Sequence[str]`)
+            Collection of entity identifiers whose status flags should be
+            monitored until completion.
+
+        **Returns**
+
+        - **None**
+            Returns when all entities have successfully reached the
+            `Finished` state.
+
+        **Raises**
+
+        - **ValueError**
+            Raised if:
+            - No status flags are returned for the provided entities.
+            - Any entity transitions into the `Error` state.
+
+        - **TimeoutError**
+            Raised if the polling process exceeds the configured timeout
+            before all entities reach the `Finished` state.
+        """
+
         flag_constraints = QueryConstraints.includes("Status_Flags", "Entity_ID", list(entity_ids))
         wait_start_time = time.time()
         wait_end_time = wait_start_time + self._timeout_seconds

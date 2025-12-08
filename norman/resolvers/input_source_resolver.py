@@ -8,8 +8,59 @@ from norman_objects.shared.inputs.input_source import InputSource
 
 
 class InputSourceResolver:
+    """
+    Utility class for determining the type of input source provided to the
+    Norman SDK. The resolver inspects the incoming data and classifies it as:
+
+    - `InputSource.File` - A local file path (string or `Path`) that exists.
+    - `InputSource.Stream` - A synchronous or asynchronous stream object.
+    - `InputSource.Link` - A valid HTTP or HTTPS URL.
+    - `InputSource.Primitive` - Any other literal or primitive value.
+
+    This classification enables the SDK to handle file uploads, URLs, streams,
+    and primitive values in a unified manner.
+
+    **Methods**
+    """
     @staticmethod
     def resolve(data: Any) -> InputSource:
+        """
+        Determine the appropriate `InputSource` type for the given value.
+
+        Classification follows these rules:
+
+        1. **Path**
+           If `data` is a `Path` object that exists on disk → `InputSource.File`.
+
+        2. **Async Stream**
+           If `data` exposes `__aiter__`, `__anext__`, and an async `read()` → `InputSource.Stream`.
+
+        3. **Sync Stream**
+           If `data` is a file-like object or exposes `read`, `__iter__`, and `__next__` → `InputSource.Stream`.
+
+        4. **String**
+           - If it is a valid HTTP/HTTPS URL → `InputSource.Link`.
+           - If it is a file path that exists → `InputSource.File`.
+           - Otherwise → `InputSource.Primitive`.
+
+        5. **Anything else**
+           Falls back to `InputSource.Primitive`.
+
+        **Parameters**
+
+        - **data** (`Any`)
+            The input object to classify. May be a string, file path, stream,
+            or primitive value.
+
+        **Returns**
+
+        - **InputSource** - The detected input source classification.
+
+        **Raises**
+
+        - **ValueError** - If `data` is `None`.
+        - **FileNotFoundError** - If a `Path` object points to a non-existent file.
+        """
         if data is None:
             raise ValueError("Input data cannot be None")
         elif isinstance(data, Path):

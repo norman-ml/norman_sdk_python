@@ -9,9 +9,63 @@ from norman.resolvers.signature_modality_resolver import SignatureModalityResolv
 
 
 class SignatureFactory(metaclass=Singleton):
+    """
+    Factory responsible for constructing `ModelSignature` objects from the
+    high-level declarative `SignatureConfig`. The factory resolves encoding,
+    modality, HTTP binding location, parameters, and defaults, producing a
+    strongly typed signature definition used when registering and executing
+    models.
+
+    Signatures describe how models receive and produce data, including:
+
+    - Data modality (audio, text, image, etc.)
+    - Data domain (semantic grouping)
+    - Encoding type
+    - HTTP location (body, query, etc.)
+    - Parameters and sub-fields
+    - Optional metadata such as visibility and default values
+
+    **Methods**
+    """
 
     @staticmethod
     def create(signature_config: SignatureConfig, signature_type: SignatureType) -> ModelSignature:
+        """
+        Create a `ModelSignature` object from a `SignatureConfig`, assigning the
+        appropriate signature type (input/output) and resolving all fields into
+        their normalized forms.
+
+        **Behavior Summary**
+
+        - Resolves the signature’s data modality based on the declared encoding
+          using `SignatureModalityResolver`.
+        - Determines correct `http_location`, defaulting to `HttpLocation.Body`
+          when unspecified.
+        - Normalizes `hidden` and `default_value` fields.
+        - Builds signature parameters using `ParameterFactory`.
+        - Initializes empty transform and argument lists (reserved for future
+          extensibility).
+
+        **Parameters**
+
+        - **signature_config** (`SignatureConfig`)
+            Declarative configuration describing the signature’s structure,
+            encoding, metadata, and optional parameters.
+
+        - **signature_type** (`SignatureType`)
+            Indicates whether this signature represents a model input or output.
+
+        **Returns**
+
+        - **ModelSignature**
+            A fully constructed signature definition describing how a model
+            expects or produces data.
+
+        **Raises**
+
+        - **ValueError**
+            If the data encoding is unknown or cannot be resolved.
+        """
         data_modality = SignatureModalityResolver.resolve(signature_config.data_encoding)
 
         http_location = HttpLocation.Body

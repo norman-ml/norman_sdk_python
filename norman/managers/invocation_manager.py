@@ -24,6 +24,59 @@ from norman.services.file_transfer_service import FileTransferService
 
 
 class InvocationManager:
+    """
+    High-level orchestrator responsible for executing model invocations within
+    the Norman SDK. The manager coordinates authentication, invocation creation,
+    input upload, asynchronous status polling, output retrieval, and response
+    resolution.
+
+    This class acts as the public entry point for performing a model invocation:
+    users provide an `invocation_config`, and the manager handles the entire
+    pipeline needed to produce final outputs.
+
+    Invocation lifecycle:
+
+    1. Authenticate (refresh token if needed)
+    2. Create invocation record in the database
+    3. Upload model inputs (primitive, stream, file, or URL)
+    4. Wait for status flags to indicate completion
+    5. Retrieve output handlers
+    6. Consume resolved outputs in the desired format
+
+    **Constructor**
+
+    Initializes all supporting services required for invoking a model:
+    - Authentication manager
+    - File transfer service
+    - File utilities
+    - Flag polling resolver
+    - File pull, persist, and retrieve services
+    - Reusable HTTP session
+
+    **Attributes**
+
+    - **_authentication_manager** (`AuthenticationManager`)
+        Handles authentication and access token lifecycle.
+
+    - **_file_transfer_service** (`FileTransferService`)
+        Responsible for uploading primitive, file, and stream inputs.
+
+    - **_file_utils** (`FileUtils`)
+        Utility for buffer-size and file-type calculations.
+
+    - **_flag_status_resolver** (`FlagStatusResolver`)
+        Polls backend status flags until invocation is complete.
+
+    - **_http_client** (`HttpClient`)
+        Reusable HTTP client for authenticated API calls.
+
+    - **_file_pull_service**, **_persist_service**, **_retrieve_service**
+        Norman Core services for pulling files, persisting metadata,
+        and retrieving outputs.
+
+    **Methods**
+    """
+
     def __init__(self) -> None:
         self._authentication_manager = AuthenticationManager()
         self._file_transfer_service = FileTransferService()
@@ -36,6 +89,34 @@ class InvocationManager:
         self._retrieve_service = Retrieve()
 
     async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, Any]:
+        """
+        **Coroutine — Public API**
+
+        Execute a full model invocation based on the provided configuration.
+        This method orchestrates authentication, input upload, status polling,
+        output retrieval, and final response resolution.
+
+        **Parameters**
+
+        - **invocation_config** (`dict[str, Any]`)
+            Raw invocation parameters, validated and normalized into an
+            `InvocationConfig` via `InvocationConfigFactory`.
+
+        **Returns**
+
+        - **dict[str, Any]**
+            A mapping from output display titles to fully resolved output values.
+            Output formats depend on the configured consume mode.
+
+        **Raises**
+
+        - **RuntimeError**
+            If invocation record creation fails.
+        - **ValueError**
+            If input upload or response handling fails.
+        - **TimeoutError**
+            If invocation does not complete within the configured flag timeout.
+        """
         await self._authentication_manager.invalidate_access_token()
         validated_invocation_config = InvocationConfigFactory.create(invocation_config)
 
@@ -49,12 +130,36 @@ class InvocationManager:
         return results
 
     async def _create_invocation_in_database(self, token: Sensitive[str], invocation_config: InvocationConfig) -> Invocation:
-        invocations = await self._persist_service.invocations.create_invocations_by_model_names(token=token, model_name_counter={invocation_config.model_name: 1})
-        if invocations is None or len(invocations) == 0:
+        """
+        **Coroutine**
+
+        Create an invocation entry in the database based on the model name.
+
+        **Returns**
+
+        - **Invocation**
+            The invocation record returned by the backend.
+
+        **Raises**
+
+        - **RuntimeError**
+            If no invocation is created.
+        """
+        invocations = await self._persist_service.invocations.create_invocations_by_model_names(
+            token=token,
+            model_name_counter={invocation_config.model_name: 1}
+        )
+        if not invocations:
             raise RuntimeError("Invocation creation failed")
         return invocations[0]
 
     async def _upload_inputs(self, token: Sensitive[str], invocation: Invocation, invocation_config: InvocationConfig) -> None:
+        """
+        **Coroutine**
+
+        Upload all invocation inputs, dispatching to the correct handler
+        based on input source type.
+        """
         input_configs = {input_config.display_title: input_config for input_config in invocation_config.inputs}
 
         for invocation_input in invocation.inputs:
@@ -62,12 +167,13 @@ class InvocationManager:
             await self._handle_input_upload(token, invocation_input, input_config)
 
     async def _handle_input_upload(self, token: Sensitive[str], invocation_input: InvocationSignature, input_config: InvocationInputConfig) -> None:
-        data = input_config.data
+        """
+        **Coroutine**
 
-        if input_config.source is not None:
-            source = input_config.source
-        else:
-            source = InputSourceResolver.resolve(data)
+        Determine the appropriate upload strategy for the input and execute it.
+        """
+        data = input_config.data
+        source = input_config.source or InputSourceResolver.resolve(data)
 
         if source == "Primitive":
             await self._upload_primitive_input(token, invocation_input, data)
@@ -81,6 +187,12 @@ class InvocationManager:
             raise ValueError(f"Unsupported input source: {source}")
 
     async def _upload_primitive_input(self, token: Sensitive[str], invocation_input: InvocationSignature, data: Any) -> None:
+        """
+        **Coroutine**
+
+        Upload primitive data (strings, numbers, dicts, lists) by converting
+        it into a `BytesIO` buffer.
+        """
         byte_buffer = self._file_transfer_service.normalize_primitive_data(data)
         buffer_size = self._file_utils.get_buffer_size(byte_buffer)
         pairing_request = SocketInputPairingRequest(
@@ -90,10 +202,14 @@ class InvocationManager:
             model_id=invocation_input.model_id,
             file_size_in_bytes=buffer_size
         )
-
         await self._file_transfer_service.upload_from_buffer(token, pairing_request, byte_buffer)
 
     async def _upload_file_input(self, token: Sensitive[str], invocation_input: InvocationSignature, path: str) -> None:
+        """
+        **Coroutine**
+
+        Upload a file from disk by allocating a socket and streaming contents.
+        """
         file_size = os.path.getsize(path)
         pairing_request = SocketInputPairingRequest(
             invocation_id=invocation_input.invocation_id,
@@ -105,6 +221,11 @@ class InvocationManager:
         await self._file_transfer_service.upload_file(token, pairing_request, path)
 
     async def _upload_stream_input(self, token: Sensitive[str], invocation_input: InvocationSignature, stream: Any) -> None:
+        """
+        **Coroutine**
+
+        Upload an in-memory byte stream.
+        """
         file_size = self._file_utils.get_buffer_size(stream)
         pairing_request = SocketInputPairingRequest(
             invocation_id=invocation_input.invocation_id,
@@ -116,6 +237,11 @@ class InvocationManager:
         await self._file_transfer_service.upload_from_buffer(token, pairing_request, stream)
 
     async def _submit_link_input(self, token: Sensitive[str], invocation_input: InvocationSignature, link: str) -> None:
+        """
+        **Coroutine**
+
+        Submit a URL for backend-side downloading.
+        """
         download_request = InputDownloadRequest(
             signature_id=invocation_input.signature_id,
             invocation_id=invocation_input.invocation_id,
@@ -127,6 +253,12 @@ class InvocationManager:
         await self._file_pull_service.submit_input_links(token, download_request)
 
     async def _wait_for_flags(self, token: Sensitive[str], invocation: Invocation) -> None:
+        """
+        **Coroutine**
+
+        Block until the invocation and all associated inputs/outputs reach
+        the `Finished` state or error out.
+        """
         entity_ids = [invocation.id]
         entity_ids.extend([input.id for input in invocation.inputs])
         entity_ids.extend([output.id for output in invocation.outputs])
@@ -134,15 +266,31 @@ class InvocationManager:
         await self._flag_status_resolver.wait_for_entities(token, entity_ids)
 
     async def _get_response_handlers(self, token: Sensitive[str], invocation: Invocation) -> dict[str, Any]:
-        response_handlers = {}
+        """
+        **Coroutine**
 
+        Create `ResponseHandler` objects for each invocation output.
+        """
+        response_handlers = {}
         for output in invocation.outputs:
-            invocation_output = self._retrieve_service.get_invocation_output(token, invocation.account_id, invocation.model_id, invocation.id, output.id)
+            invocation_output = self._retrieve_service.get_invocation_output(
+                token,
+                invocation.account_id,
+                invocation.model_id,
+                invocation.id,
+                output.id
+            )
             response_handlers[output.display_title] = ResponseHandler(invocation_output)
 
         return response_handlers
 
     async def _resolve_outputs(self, invocation_config: InvocationConfig, response_handlers: dict[str, ResponseHandler]) -> dict[str, Any]:
+        """
+        **Coroutine**
+
+        Consume output handlers and produce final resolved output values,
+        applying user-defined `consume_mode` where applicable.
+        """
         output_configs = {}
         if invocation_config.outputs is not None:
             for output_config in invocation_config.outputs:
