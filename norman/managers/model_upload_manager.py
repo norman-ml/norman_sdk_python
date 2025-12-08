@@ -33,37 +33,6 @@ class ModelUploadManager:
     The `ModelUploadManager` is the primary entry point for pushing model
     definitions and associated resources to Norman.
 
-    **Constructor**
-
-    Initializes all required services to perform model uploads:
-
-    - Authentication manager (token lifecycle)
-    - File transfer service (streaming file uploads)
-    - File utilities (size detection)
-    - Flag resolver (asynchronous completion waiting)
-    - HTTP client (shared request session)
-    - File pull / persist services (backend integration)
-
-    **Attributes**
-
-    - **_authentication_manager** (`AuthenticationManager`)
-        Handles API-key–based authentication and token refresh.
-
-    - **_file_transfer_service** (`FileTransferService`)
-        Streams file/stream assets into the file-push subsystem.
-
-    - **_file_utils** (`FileUtils`)
-        Used for detecting buffer sizes for streamed assets.
-
-    - **_flag_status_resolver** (`FlagStatusResolver`)
-        Waits for backend flags to indicate upload completion.
-
-    - **_http_client** (`HttpClient`)
-        Reusable HTTP session for authenticated requests.
-
-    - **_file_pull_service**, **_persist_service**
-        Services for backend-side link submission and model metadata updates.
-
     **Methods**
     """
 
@@ -79,7 +48,7 @@ class ModelUploadManager:
 
     async def upload_model(self, model_config: dict[str, Any]) -> Model:
         """
-        **Coroutine — Public API**
+        **Coroutine**
 
         Upload a complete model package to the Norman platform. This includes:
 

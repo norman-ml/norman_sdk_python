@@ -36,43 +36,12 @@ class InvocationManager:
 
     Invocation lifecycle:
 
-    1. Authenticate (refresh token if needed)
-    2. Create invocation record in the database
-    3. Upload model inputs (primitive, stream, file, or URL)
-    4. Wait for status flags to indicate completion
-    5. Retrieve output handlers
-    6. Consume resolved outputs in the desired format
-
-    **Constructor**
-
-    Initializes all supporting services required for invoking a model:
-    - Authentication manager
-    - File transfer service
-    - File utilities
-    - Flag polling resolver
-    - File pull, persist, and retrieve services
-    - Reusable HTTP session
-
-    **Attributes**
-
-    - **_authentication_manager** (`AuthenticationManager`)
-        Handles authentication and access token lifecycle.
-
-    - **_file_transfer_service** (`FileTransferService`)
-        Responsible for uploading primitive, file, and stream inputs.
-
-    - **_file_utils** (`FileUtils`)
-        Utility for buffer-size and file-type calculations.
-
-    - **_flag_status_resolver** (`FlagStatusResolver`)
-        Polls backend status flags until invocation is complete.
-
-    - **_http_client** (`HttpClient`)
-        Reusable HTTP client for authenticated API calls.
-
-    - **_file_pull_service**, **_persist_service**, **_retrieve_service**
-        Norman Core services for pulling files, persisting metadata,
-        and retrieving outputs.
+    - Authenticate (refresh token if needed)
+    - Create invocation record in the database
+    - Upload model inputs (primitive, stream, file, or URL)
+    - Wait for status flags to indicate completion
+    - Retrieve output handlers
+    - Consume resolved outputs in the desired format
 
     **Methods**
     """
@@ -90,7 +59,7 @@ class InvocationManager:
 
     async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, Any]:
         """
-        **Coroutine — Public API**
+        **Coroutine**
 
         Execute a full model invocation based on the provided configuration.
         This method orchestrates authentication, input upload, status polling,

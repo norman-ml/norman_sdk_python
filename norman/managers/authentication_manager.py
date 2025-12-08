@@ -28,31 +28,6 @@ class AuthenticationManager(metaclass=Singleton):
     - Access and ID tokens are stored as `Sensitive[str]`
     - Tokens are automatically refreshed when expired
 
-    **Constructor**
-
-    Initializes the underlying `Authenticate` and `HttpClient` services and
-    allocates internal fields for API key storage, tokens, and account ID.
-
-    **Attributes**
-
-    - **_authentication_service** (`Authenticate`)
-      Low-level authentication client used to perform logins and token exchange.
-
-    - **_http_client** (`HttpClient`)
-      Reusable HTTP session used for authenticated requests.
-
-    - **_api_key** (`Optional[str]`)
-      API key supplied by the user via `set_api_key()`.
-
-    - **_account_id** (`Optional[str]`)
-      ID of the authenticated account after a successful login.
-
-    - **_access_token** (`Optional[Sensitive[str]]`)
-      Cached access token used for API requests.
-
-    - **_id_token** (`Optional[Sensitive[str]]`)
-      Cached ID token for identity verification.
-
     **Methods**
     """
 
