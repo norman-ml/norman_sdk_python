@@ -4,13 +4,9 @@ from typing import Optional
 import jwt
 from norman_core.clients.http_client import HttpClient
 from norman_core.services.authenticate import Authenticate
-from norman_objects.services.authenticate.login.account_id_password_login_request import AccountIDPasswordLoginRequest
 from norman_objects.services.authenticate.login.api_key_login_request import ApiKeyLoginRequest
-from norman_objects.services.authenticate.login.email_password_login_request import EmailPasswordLoginRequest
-from norman_objects.services.authenticate.login.name_password_login_request import NamePasswordLoginRequest
 from norman_objects.services.authenticate.signup.signup_key_request import SignupKeyRequest
 from norman_objects.services.authenticate.signup.signup_key_response import SignupKeyResponse
-from norman_objects.shared.authentication.account_authentication_methods import AccountAuthenticationMethods
 from norman_objects.shared.security.sensitive import Sensitive
 from norman_utils_external.singleton import Singleton
 
@@ -57,20 +53,6 @@ class AuthenticationManager(metaclass=Singleton):
             signup_response = await authentication_service.signup.signup_and_generate_key(signup_request)
             return signup_response
 
-    # ==================== Get Authentication Factors ====================
-
-    async def get_authentication_factors_by_id(self, account_id: str) -> AccountAuthenticationMethods:
-        async with self._http_client:
-            return await self._authentication_service.factors.get_authentication_factors_by_id(account_id)
-
-    async def get_authentication_factors_by_name(self, account_name: str) -> AccountAuthenticationMethods:
-        async with self._http_client:
-            return await self._authentication_service.factors.get_authentication_factors_by_name(account_name)
-
-    async def get_authentication_factors_by_email(self, email: str) -> AccountAuthenticationMethods:
-        async with self._http_client:
-            return await self._authentication_service.factors.get_authentication_factors_by_email(email)
-
     async def _login_with_api_key(self) -> None:
         async with self._http_client:
             if self._api_key is None or self._api_key == "":
@@ -82,59 +64,6 @@ class AuthenticationManager(metaclass=Singleton):
             self._account_id = login_response.account.id
             self._access_token = login_response.access_token
             self._id_token = login_response.id_token
-
-    def _set_login_response(self, login_response) -> None:
-        """Helper to set tokens from login response"""
-        self._account_id = login_response.account.id
-        self._access_token = login_response.access_token
-        self._id_token = login_response.id_token
-
-        # ==================== Login Methods ====================
-
-    async def login_with_api_key(self) -> None:
-        """Login using the previously set API key"""
-        async with self._http_client:
-            await self._login_with_api_key()
-
-    async def login_with_password_by_name(self, name: str, password: str) -> None:
-        """Login with username and password"""
-        async with self._http_client:
-            login_request = NamePasswordLoginRequest(name=name, password=Sensitive(password))
-            login_response = await self._authentication_service.login.login_password_name(login_request)
-            self._set_login_response(login_response)
-
-    async def login_with_password_by_email(self, email: str, password: str) -> None:
-        """Login with email and password"""
-        async with self._http_client:
-            login_request = EmailPasswordLoginRequest(email=email, password=Sensitive(password))
-            login_response = await self._authentication_service.login.login_password_email(login_request)
-            self._set_login_response(login_response)
-
-    async def login_with_password_by_account_id(self, account_id: str, password: str) -> None:
-        """Login with account ID and password"""
-        async with self._http_client:
-            login_request = AccountIDPasswordLoginRequest(account_id=account_id, password=Sensitive(password))
-            login_response = await self._authentication_service.login.login_password_account_id(login_request)
-            self._set_login_response(login_response)
-
-    async def login_default(self, account_id: str) -> None:
-        """Login as guest (no authentication factors)"""
-        async with self._http_client:
-            login_response = await self._authentication_service.login.login_default(account_id)
-            self._set_login_response(login_response)
-
-    # ==================== Email OTP Methods ====================
-
-    async def send_email_otp(self, email: str) -> None:
-        """Request an OTP code to be sent to email"""
-        async with self._http_client:
-            await self._authentication_service.login.login_email_otp(email)
-
-    async def verify_email_otp(self, email: str, code: str) -> None:
-        """Verify OTP code and complete login"""
-        async with self._http_client:
-            login_response = await self._authentication_service.login.verify_email_otp(email, code)
-            self._set_login_response(login_response)
 
     async def invalidate_access_token(self) -> None:
         if self.access_token_expired:
