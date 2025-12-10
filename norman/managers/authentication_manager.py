@@ -61,16 +61,15 @@ class AuthenticationManager(metaclass=Singleton):
 
     async def get_authentication_factors_by_id(self, account_id: str) -> AccountAuthenticationMethods:
         async with self._http_client:
-            return await self._authentication_service.login.get_authentication_factors_by_id(account_id)
+            return await self._authentication_service.factors.get_authentication_factors_by_id(account_id)
 
     async def get_authentication_factors_by_name(self, account_name: str) -> AccountAuthenticationMethods:
         async with self._http_client:
-            return await self._authentication_service.login.get_authentication_factors_by_name(account_name)
+            return await self._authentication_service.factors.get_authentication_factors_by_name(account_name)
 
     async def get_authentication_factors_by_email(self, email: str) -> AccountAuthenticationMethods:
         async with self._http_client:
-            return await self._authentication_service.login.get_authentication_factors_by_email(email)
-
+            return await self._authentication_service.factors.get_authentication_factors_by_email(email)
 
     async def _login_with_api_key(self) -> None:
         async with self._http_client:
