@@ -22,6 +22,9 @@ class ModelConfig(BaseModel):
     outputs: List[SignatureConfig] = Field(description="Output signatures defining model outputs and their formats")
     assets: List[AssetConfig] = Field(description="List of associated model assets for display and execution")
 
+    cuda_version: Optional[str] = Field(description="")
+    python_version: Optional[str] = Field(description="")
+
     request_type: Optional[HttpRequestType] = Field(None, description="Optional HTTP request type used for inference")
     model_type: Optional[ModelType] = Field(None, description="Optional model type or framework")
     output_format: Optional[OutputFormat] = Field(None, description="Optional format in which model outputs are returned")
