@@ -5,22 +5,31 @@ class SignatureModalityResolver:
     _Encoding_Map = {
         # Audio (container level)
         "aac": DataModality.Audio,
+        "ac3": DataModality.Audio,
+        "flac": DataModality.Audio,
         "mp3": DataModality.Audio,
+        "opus": DataModality.Audio,
+        "vorbis": DataModality.Audio,
         "wav": DataModality.Audio,
 
-        # Image
+        # Image (container level)
         "jpg": DataModality.Image,
         "jpeg": DataModality.Image,
         "png": DataModality.Image,
+        "webp": DataModality.Image,
 
         # Text
         "txt": DataModality.Text,
-        "utf-8": DataModality.Text,
-        "utf-16": DataModality.Text,
+        "utf8": DataModality.Text,
+        "utf16": DataModality.Text,
 
         # Video (container level)
         "avi": DataModality.Video,
-        "mp4": DataModality.Video
+        "matroska": DataModality.Video,
+        "mov": DataModality.Video,
+        "mp4": DataModality.Video,
+        "ogg": DataModality.Video,
+        "webm": DataModality.Video
     }
 
     @staticmethod
