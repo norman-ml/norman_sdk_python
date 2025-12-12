@@ -14,13 +14,12 @@ class ParameterModalityResolver:
         "png": DataModality.Image,
 
         # Text encodings
-        "utf-8": DataModality.Text,
-        "utf-16": DataModality.Text,
+        "utf8": DataModality.Text,
+        "utf16": DataModality.Text,
 
         # Video frame encodings (raw streams)
         "h264": DataModality.Video,
         "h265": DataModality.Video,
-        "libx264": DataModality.Video,
         "rgb24": DataModality.Video,
         "x264": DataModality.Video,
         "yuv420p": DataModality.Video
