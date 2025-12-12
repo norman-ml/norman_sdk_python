@@ -5,25 +5,33 @@ class ParameterModalityResolver:
     _Encoding_Map = {
         # Audio (frame level)
         "aac": DataModality.Audio,
+        "ac3": DataModality.Audio,
+        "flac": DataModality.Audio,
         "mp3": DataModality.Audio,
+        "opus": DataModality.Audio,
+        "vorbis": DataModality.Audio,
         "wav": DataModality.Audio,
 
-        # Image
+        # Image (frame level)
         "jpg": DataModality.Image,
         "jpeg": DataModality.Image,
         "png": DataModality.Image,
+        "webp": DataModality.Image,
 
-        # Text encodings
-        "utf-8": DataModality.Text,
-        "utf-16": DataModality.Text,
+        # Text (frame level)
+        "ass": DataModality.Text,
+        "mp4_text": DataModality.Text,
+        "srt": DataModality.Text,
+        "utf8": DataModality.Text,
+        "utf16": DataModality.Text,
+        "vtt": DataModality.Text,
 
-        # Video frame encodings (raw streams)
+        # Video (frame level)
+        "av1": DataModality.Video,
         "h264": DataModality.Video,
         "h265": DataModality.Video,
-        "libx264": DataModality.Video,
-        "rgb24": DataModality.Video,
-        "x264": DataModality.Video,
-        "yuv420p": DataModality.Video
+        "vp8": DataModality.Video,
+        "vp9": DataModality.Video
     }
 
     @staticmethod
