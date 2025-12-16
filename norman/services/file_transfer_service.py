@@ -23,14 +23,16 @@ class FileTransferService(metaclass=Singleton):
 
     async def upload_from_buffer(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], buffer: Union[bytes, io.BytesIO]) -> None:
         if isinstance(pairing_request, SocketAssetPairingRequest):
+            entity_id = pairing_request.model_id
             socket_info = await self._file_push_service.allocate_socket_for_asset(token, pairing_request)
         elif isinstance(pairing_request, SocketInputPairingRequest):
+            entity_id = pairing_request.invocation_id
             socket_info = await self._file_push_service.allocate_socket_for_input(token, pairing_request)
         else:
             raise TypeError("Unsupported pairing request type")
 
         checksum = await SocketClient.write_and_digest(socket_info, buffer)
-        checksum_request = ChecksumRequest(pairing_id=socket_info.pairing_id, checksum=checksum)
+        checksum_request = ChecksumRequest(entity_id=entity_id, pairing_id=socket_info.pairing_id, checksum=checksum)
         await self._file_push_service.complete_file_transfer(token, checksum_request)
 
     def normalize_primitive_data(self, data: Any) -> io.BytesIO:
