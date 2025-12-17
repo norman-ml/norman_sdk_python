@@ -12,6 +12,7 @@ class SignatureConfig(BaseModel):
     data_modality: str = Field(description="Name or identifier describing and categorizing the contents passed to the model signature")
     data_domain: str = Field(description="Subject area for the data passed to the model signature")
     data_encoding: str = Field(description="Encoding format in which the model expects to receive inputs for the model signature")
+    file_encoding: str = Field(description="File format or encoding (e.g. png, wav, mp3, pdf) used when the signature exchanges file-based data")
     receive_format: ReceiveFormat = Field(description="How the model expects to receive inputs for the model signature")
 
     parameters: list[ParameterConfig]

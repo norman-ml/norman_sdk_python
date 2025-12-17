@@ -39,6 +39,7 @@ class SignatureFactory(metaclass=Singleton):
             data_modality=data_modality,
             data_domain=signature_config.data_domain,
             data_encoding=signature_config.data_encoding,
+            file_encoding=signature_config.file_encoding,
             receive_format=signature_config.receive_format,
             http_location=http_location,
             hidden=hidden,
