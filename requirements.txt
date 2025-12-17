@@ -1,0 +1,3 @@
+git+https://github.com/norman-ml/norman_core_sdk_python.git@86c6wa00a/data-model/top-level-model-class
+
+pyjwt==2.10.1
