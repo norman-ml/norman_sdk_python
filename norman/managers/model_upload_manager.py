@@ -43,7 +43,7 @@ class ModelUploadManager:
             return model
 
     async def _create_model_in_database(self, token: Sensitive[str], model: ModelProjection) -> ModelProjection:
-        models = await self._persist_service.models.create_models(token, [model])
+        models = await self._persist_service.models.create_model_projections(token, [model])
         if models is None or len(models) == 0:
             raise RuntimeError("Model creation failed")
         return models[0]
@@ -77,6 +77,7 @@ class ModelUploadManager:
         pairing_request = SocketAssetPairingRequest(
             account_id=model_asset.account_id,
             model_id=model_asset.model_id,
+            version_id=model_asset.version_id,
             asset_id=model_asset.id,
             file_size_in_bytes=file_size
         )
@@ -87,6 +88,7 @@ class ModelUploadManager:
         pairing_request = SocketAssetPairingRequest(
             account_id=model_asset.account_id,
             model_id=model_asset.model_id,
+            version_id=model_asset.version_id,
             asset_id=model_asset.id,
             file_size_in_bytes=file_size
         )
@@ -96,6 +98,7 @@ class ModelUploadManager:
         download_request = AssetDownloadRequest(
             account_id=model_asset.account_id,
             model_id=model_asset.model_id,
+            version_id=model_asset.version_id,
             asset_id=model_asset.id,
             asset_name=model_asset.asset_name,
             links=[data],

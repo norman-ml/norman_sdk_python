@@ -88,6 +88,7 @@ class InvocationManager:
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
+            version_id=invocation_input.version_id,
             file_size_in_bytes=buffer_size
         )
 
@@ -100,6 +101,7 @@ class InvocationManager:
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
+            version_id=invocation_input.version_id,
             file_size_in_bytes=file_size
         )
         await self._file_transfer_service.upload_file(token, pairing_request, path)
@@ -111,6 +113,7 @@ class InvocationManager:
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
+            version_id=invocation_input.version_id,
             file_size_in_bytes=file_size
         )
         await self._file_transfer_service.upload_from_buffer(token, pairing_request, stream)
@@ -122,6 +125,7 @@ class InvocationManager:
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
+            version_id=invocation_input.version_id,
             links=[link],
         )
         await self._file_pull_service.submit_input_links(token, download_request)
