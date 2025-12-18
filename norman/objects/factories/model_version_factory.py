@@ -62,6 +62,7 @@ class ModelVersionFactory(metaclass=Singleton):
 
 
         model_version = ModelVersion(
+            account_id=ModelVersionFactory.authentication_manager.account_id,
             build_status=ModelBuildStatus.InProgress,
             active=True,
             label=version_config.label,
