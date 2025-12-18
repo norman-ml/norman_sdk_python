@@ -14,7 +14,7 @@ from norman_utils_external.file_utils import FileUtils
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.model.asset_config import AssetConfig
 from norman.objects.configs.model.model_projection_config import ModelProjectionConfig
-from norman.objects.factories.model_factory import ModelFactory
+from norman.objects.factories.model_projection_factory import ModelProjectionFactory
 from norman.resolvers.flag_status_resolver import FlagStatusResolver
 from norman.resolvers.input_source_resolver import InputSourceResolver
 from norman.services.file_transfer_service import FileTransferService
@@ -34,7 +34,7 @@ class ModelUploadManager:
     async def upload_model(self, model_config: dict[str, Any]) -> ModelProjection:
         await self._authentication_manager.invalidate_access_token()
         validated_model_config = ModelProjectionConfig.model_validate(model_config)
-        model = ModelFactory.create(validated_model_config)
+        model = ModelProjectionFactory.create(validated_model_config)
 
         async with self._http_client:
             model = await self._create_model_in_database(self._authentication_manager.access_token, model)

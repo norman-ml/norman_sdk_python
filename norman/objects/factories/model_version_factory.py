@@ -1,29 +1,23 @@
 from norman_objects.shared.model_signatures.signature_type import SignatureType
 from norman_objects.shared.models.http_request_type import HttpRequestType
+from norman_objects.shared.models.model_build_status import ModelBuildStatus
 from norman_objects.shared.models.model_hosting_location import ModelHostingLocation
-from norman_objects.shared.models.model_projection import ModelProjection
 from norman_objects.shared.models.model_type import ModelType
 from norman_objects.shared.models.model_version import ModelVersion
 from norman_objects.shared.models.output_format import OutputFormat
 from norman_utils_external.singleton import Singleton
 
 from norman.managers.authentication_manager import AuthenticationManager
-from norman.objects.configs.model.model_projection_config import ModelProjectionConfig
+from norman.objects.configs.model.model_version_config import ModelVersionConfig
 from norman.objects.factories.asset_factory import AssetFactory
 from norman.objects.factories.signature_factory import SignatureFactory
-from norman.objects.factories.tag_factory import TagFactory
 
 
-class ModelFactory(metaclass=Singleton):
+class ModelVersionFactory(metaclass=Singleton):
     authentication_manager = AuthenticationManager()
 
     @staticmethod
-    def create(model_config: ModelProjectionConfig) -> ModelProjection:
-        version_config = model_config.version
-        category = version_config.category
-        if category is None:
-            category = ""
-
+    def create(version_config: ModelVersionConfig) -> ModelVersion:
         request_type = version_config.request_type
         if request_type is None:
             request_type = HttpRequestType.Post
@@ -42,8 +36,8 @@ class ModelFactory(metaclass=Singleton):
 
         if hosting_location == ModelHostingLocation.External:
             if version_config.url is None:
-                raise ValueError("External models must define a url field in ModelProjectionConfig")
-            url = model_config.url
+                raise ValueError("External models must define a url field in ModelVersionConfig")
+            url = version_config.url
         else:
             url = ""
 
@@ -66,18 +60,13 @@ class ModelFactory(metaclass=Singleton):
         if version_config.http_headers is not None:
             http_headers.update(version_config.http_headers)
 
-        user_tags = []
-        if model_config.user_tags is not None:
-            for tag_config in model_config.user_tags:
-                created = TagFactory.create(tag_config)
-                user_tags.append(created)
-
 
         model_version = ModelVersion(
+            build_status=ModelBuildStatus.InProgress,
             active=True,
-            label=model_config.version_label,
-            short_description=model_config.short_description,
-            long_description=model_config.long_description,
+            label=version_config.label,
+            short_description=version_config.short_description,
+            long_description=version_config.long_description,
             hosting_location=hosting_location,
             model_type=model_type,
             request_type=request_type,
@@ -86,15 +75,7 @@ class ModelFactory(metaclass=Singleton):
             assets=assets,
             inputs=inputs,
             outputs=outputs,
-            http_headers=http_headers,
+            http_headers=http_headers
         )
 
-        model = ModelProjection(
-            account_id=ModelFactory.authentication_manager.account_id,
-            name=model_config.name,
-            category=category,
-            version=model_version,
-            user_tags=user_tags
-        )
-
-        return model
+        return model_version
