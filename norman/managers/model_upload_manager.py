@@ -6,15 +6,15 @@ from norman_core.services.file_pull.file_pull import FilePull
 from norman_core.services.persist import Persist
 from norman_objects.services.file_pull.requests.asset_download_request import AssetDownloadRequest
 from norman_objects.services.file_push.pairing.socket_asset_pairing_request import SocketAssetPairingRequest
-from norman_objects.shared.models.model import Model
 from norman_objects.shared.models.model_asset import ModelAsset
+from norman_objects.shared.models.model_projection import ModelProjection
 from norman_objects.shared.security.sensitive import Sensitive
 from norman_utils_external.file_utils import FileUtils
 
 from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.model.asset_config import AssetConfig
-from norman.objects.configs.model.model_config import ModelConfig
-from norman.objects.factories.model_factory import ModelFactory
+from norman.objects.configs.model.model_projection_config import ModelProjectionConfig
+from norman.objects.factories.model_projection_factory import ModelProjectionFactory
 from norman.resolvers.flag_status_resolver import FlagStatusResolver
 from norman.resolvers.input_source_resolver import InputSourceResolver
 from norman.services.file_transfer_service import FileTransferService
@@ -31,10 +31,10 @@ class ModelUploadManager:
         self._file_pull_service = FilePull()
         self._persist_service = Persist()
 
-    async def upload_model(self, model_config: dict[str, Any]) -> Model:
+    async def upload_model(self, model_config: dict[str, Any]) -> ModelProjection:
         await self._authentication_manager.invalidate_access_token()
-        validated_model_config = ModelConfig.model_validate(model_config)
-        model = ModelFactory.create(validated_model_config)
+        validated_model_config = ModelProjectionConfig.model_validate(model_config)
+        model = ModelProjectionFactory.create(validated_model_config)
 
         async with self._http_client:
             model = await self._create_model_in_database(self._authentication_manager.access_token, model)
@@ -42,16 +42,16 @@ class ModelUploadManager:
             await self._wait_for_flags(self._authentication_manager.access_token, model)
             return model
 
-    async def _create_model_in_database(self, token: Sensitive[str], model: Model) -> Model:
-        models = await self._persist_service.models.create_models(token, [model])
+    async def _create_model_in_database(self, token: Sensitive[str], model: ModelProjection) -> ModelProjection:
+        models = await self._persist_service.models.create_model_projections(token, [model])
         if models is None or len(models) == 0:
             raise RuntimeError("Model creation failed")
         return models[0]
 
-    async def _upload_assets(self, token: Sensitive[str], model: Model, model_config: ModelConfig) -> None:
-        asset_configs = {asset_entry.asset_name: asset_entry for asset_entry in model_config.assets}
+    async def _upload_assets(self, token: Sensitive[str], model: ModelProjection, model_config: ModelProjectionConfig) -> None:
+        asset_configs = {asset_entry.asset_name: asset_entry for asset_entry in model_config.version.assets}
 
-        for model_asset in model.assets:
+        for model_asset in model.version.assets:
             asset_config = asset_configs[model_asset.asset_name]
             await self._handle_asset_upload(token, model_asset, asset_config)
 
@@ -77,6 +77,7 @@ class ModelUploadManager:
         pairing_request = SocketAssetPairingRequest(
             account_id=model_asset.account_id,
             model_id=model_asset.model_id,
+            version_id=model_asset.version_id,
             asset_id=model_asset.id,
             file_size_in_bytes=file_size
         )
@@ -87,6 +88,7 @@ class ModelUploadManager:
         pairing_request = SocketAssetPairingRequest(
             account_id=model_asset.account_id,
             model_id=model_asset.model_id,
+            version_id=model_asset.version_id,
             asset_id=model_asset.id,
             file_size_in_bytes=file_size
         )
@@ -96,14 +98,15 @@ class ModelUploadManager:
         download_request = AssetDownloadRequest(
             account_id=model_asset.account_id,
             model_id=model_asset.model_id,
+            version_id=model_asset.version_id,
             asset_id=model_asset.id,
             asset_name=model_asset.asset_name,
             links=[data],
         )
         await self._file_pull_service.submit_asset_links(token, download_request)
 
-    async def _wait_for_flags(self, token: Sensitive[str], model: Model) -> None:
-        entity_ids = [model.id]
-        entity_ids.extend([asset.id for asset in model.assets])
+    async def _wait_for_flags(self, token: Sensitive[str], model: ModelProjection) -> None:
+        entity_ids = [model.version.id]
+        entity_ids.extend([asset.id for asset in model.version.assets])
 
         await self._flag_status_resolver.wait_for_entities(token, entity_ids)

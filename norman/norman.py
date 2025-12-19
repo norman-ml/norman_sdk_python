@@ -1,6 +1,8 @@
-from typing import Any
+from typing import Any, Coroutine
 
+from norman_objects.services.authenticate.signup.signup_key_response import SignupKeyResponse
 from norman_objects.shared.models.model import Model
+from norman_objects.shared.models.model_projection import ModelProjection
 from norman_utils_external.singleton import Singleton
 
 from norman.managers.authentication_manager import AuthenticationManager
@@ -17,10 +19,10 @@ class Norman(metaclass=Singleton):
         self._model_upload_manager = ModelUploadManager()
 
     @staticmethod
-    async def signup(username: str) -> dict[str, Any]:
+    async def signup(username: str) -> SignupKeyResponse:
         return await AuthenticationManager.signup_and_generate_key(username)
 
-    async def upload_model(self, model_config: dict[str, Any]) -> Model:
+    async def upload_model(self, model_config: dict[str, Any]) -> ModelProjection:
         return await self._model_upload_manager.upload_model(model_config)
 
     async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, bytearray]:
