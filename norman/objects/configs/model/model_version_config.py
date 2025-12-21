@@ -15,9 +15,9 @@ class ModelVersionConfig(BaseModel):
     short_description: str = Field(description="Concise summary describing what the model does")
     long_description: str = Field(description="Detailed explanation of the model, usage, and behavior")
 
+    assets: List[AssetConfig] = Field(description="List of associated model assets for display and execution")
     inputs: List[SignatureConfig] = Field(description="Input signatures defining model inputs and their formats")
     outputs: List[SignatureConfig] = Field(description="Output signatures defining model outputs and their formats")
-    assets: List[AssetConfig] = Field(description="List of associated model assets for display and execution")
 
     hosting_location: Optional[ModelHostingLocation] = Field(None, description="Hosting location of the model")
     model_type: Optional[ModelType] = Field(None, description="Optional model type or framework")

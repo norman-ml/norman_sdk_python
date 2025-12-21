@@ -1,5 +1,6 @@
 import pytest
 
+@pytest.mark.usefixtures("authentication_manager")
 class TestModelInvoke:
     @pytest.mark.invocations
     def test_create_invocation(self):
