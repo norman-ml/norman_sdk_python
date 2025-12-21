@@ -23,7 +23,7 @@ class FileTransferService(metaclass=Singleton):
 
     async def upload_from_buffer(self, token: Sensitive[str], pairing_request: Union[SocketAssetPairingRequest, SocketInputPairingRequest], buffer: Union[bytes, io.BytesIO]) -> None:
         if isinstance(pairing_request, SocketAssetPairingRequest):
-            entity_id = pairing_request.model_id
+            entity_id = pairing_request.version_id
             socket_info = await self._file_push_service.allocate_socket_for_asset(token, pairing_request)
         elif isinstance(pairing_request, SocketInputPairingRequest):
             entity_id = pairing_request.invocation_id
@@ -53,4 +53,4 @@ class FileTransferService(metaclass=Singleton):
             return io.BytesIO(json_str.encode("utf-8"))
 
         else:
-            raise ValueError(f"Unsupported data type: {type(data)}. Cannot convert to BytesIO.")
+            raise ValueError(f"Unsupported data type: {type(data)}. Cannot con\vert to BytesIO.")
