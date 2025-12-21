@@ -53,4 +53,4 @@ class FileTransferService(metaclass=Singleton):
             return io.BytesIO(json_str.encode("utf-8"))
 
         else:
-            raise ValueError(f"Unsupported data type: {type(data)}. Cannot con\vert to BytesIO.")
+            raise ValueError(f"Unsupported data type: {type(data)}. Cannot convert to BytesIO.")
