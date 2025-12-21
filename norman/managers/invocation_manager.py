@@ -17,7 +17,7 @@ from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation.invocation_config import InvocationConfig
 from norman.objects.configs.invocation.invocation_input_config import InvocationInputConfig
 from norman.objects.factories.invocation_config_factory import InvocationConfigFactory
-from norman.objects.handles.response_handler import ResponseHandler
+from norman.objects.handlers.response_handler import ResponseHandler
 from norman.resolvers.flag_status_resolver import FlagStatusResolver
 from norman.resolvers.input_source_resolver import InputSourceResolver
 from norman.services.file_transfer_service import FileTransferService

@@ -1,7 +1,6 @@
-from typing import Any, Coroutine
+from typing import Any
 
 from norman_objects.services.authenticate.signup.signup_key_response import SignupKeyResponse
-from norman_objects.shared.models.model import Model
 from norman_objects.shared.models.model_projection import ModelProjection
 from norman_utils_external.singleton import Singleton
 
