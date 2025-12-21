@@ -17,7 +17,7 @@ from norman.managers.authentication_manager import AuthenticationManager
 from norman.objects.configs.invocation.invocation_config import InvocationConfig
 from norman.objects.configs.invocation.invocation_input_config import InvocationInputConfig
 from norman.objects.factories.invocation_config_factory import InvocationConfigFactory
-from norman.objects.handles.response_handler import ResponseHandler
+from norman.objects.handlers.response_handler import ResponseHandler
 from norman.resolvers.flag_status_resolver import FlagStatusResolver
 from norman.resolvers.input_source_resolver import InputSourceResolver
 from norman.services.file_transfer_service import FileTransferService
@@ -88,6 +88,7 @@ class InvocationManager:
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
+            version_id=invocation_input.version_id,
             file_size_in_bytes=buffer_size
         )
 
@@ -100,6 +101,7 @@ class InvocationManager:
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
+            version_id=invocation_input.version_id,
             file_size_in_bytes=file_size
         )
         await self._file_transfer_service.upload_file(token, pairing_request, path)
@@ -111,6 +113,7 @@ class InvocationManager:
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
+            version_id=invocation_input.version_id,
             file_size_in_bytes=file_size
         )
         await self._file_transfer_service.upload_from_buffer(token, pairing_request, stream)
@@ -122,6 +125,7 @@ class InvocationManager:
             input_id=invocation_input.id,
             account_id=invocation_input.account_id,
             model_id=invocation_input.model_id,
+            version_id=invocation_input.version_id,
             links=[link],
         )
         await self._file_pull_service.submit_input_links(token, download_request)
