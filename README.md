@@ -13,34 +13,6 @@ Main capabilities:
 - Smooth invocation of deployed models
 - Account management
 
----
-
-## Architecture
-
-The Norman SDK sits on top of the Norman Core SDK.
-It transforms low-level primitives into high-level developer operations.
-
-```text
-+----------------------------------------------------------+
-|                     Your Application                     |
-| (AI apps, pipelines, UIs, inference workers, automation) |
-+------------------------------▲---------------------------+
-                               │
-                        uses Norman SDK
-                               │
-+----------------------------------------------------------+
-|                         Norman SDK                       |
-| (Model Upload, Invoke, Workspaces, Accounts, Utilities)  |
-+------------------------------▲---------------------------+
-                               │
-              internally uses Norman Core SDK services
-                               │
-+----------------------------------------------------------+
-|                    Norman Core SDK                       |
-| (HttpClient, Retrieve, FilePush, FilePull, SocketClient) |
-+----------------------------------------------------------+
-```
-
 # Developer Quickstart
 
 Take your first steps with the Norman API.
@@ -106,10 +78,9 @@ response = await Norman.signup("<username>")
 
 ## 3. Run your first model
 
-This example shows how to invoke an image-based model using the Norman SDK.
-You provide an input image, and the model returns the processed output as raw bytes.
-
-See all available models in the Models Library.
+With the Norman SDK, running a model is straightforward. 
+You select a model from the Models Library, provide the required inputs, and invoke it using a simple API call.
+See all available models in the [Models Library](https://norman-ai.com/library).
 
 ---
 
@@ -121,11 +92,11 @@ norman = Norman(api_key="nrm_sk_2a96b7b1a9f44b09b7c3f9f1843e93e2")
 
 # Define the invocation configuration
 invocation_config = {
-    "model_name": "image_reverser_model",
+    "model_name": "<model_name>",
     "inputs": [
         {
             "display_title": "Input",
-            "data": "/Users/alice/Desktop/sample_image.png"
+            "data": "/Users/alice/Desktop/sample_input.png"
         }
     ]
 }
@@ -136,43 +107,15 @@ response = await norman.invoke(invocation_config)
 
 ---
 
-### Example Response
+### Response
 ```json
 {
-  "output_image": <bytes>  // binary data returned by the model
+  "output": <bytes>  // binary data returned by the model
 }
 ```
 
 ---
 
-### Response Structure
-
-**Root object (`dict`):**
-
-- **output_image** (`bytes`) - Binary output data representing the model’s generated result.  
-
-  For image models, this contains the image bytes.  
-  For text or audio models, it contains the corresponding binary data.
-
----
-
-### Accessing the Output
-
-You can display, or save the output, for example:
-
-```python
-from io import BytesIO
-from PIL import Image
-
-data = response["output_image"]
-
-# Open and display the image
-img = Image.open(BytesIO(data))
-img.show(title="output_image - Memory")
-
-# Optionally save it to disk
-img.save("test_memory_output_image.png")
-```
 ## 4. Upload your first model
 
 Uploading a model is the first step to making it available through Norman’s managed inference API.
