@@ -68,3 +68,11 @@ class AuthenticationManager(metaclass=Singleton):
     async def invalidate_access_token(self) -> None:
         if self.access_token_expired:
             await self._login_with_api_key()
+
+    async def logout(self) -> None:
+        if self._access_token is not None:
+            async with HttpClient():
+                await self._authentication_service.logout.logout(self._access_token)
+
+                self._access_token = None
+                self._id_token = None

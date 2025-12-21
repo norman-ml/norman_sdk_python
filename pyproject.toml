@@ -16,13 +16,17 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest==8.4.2"
+  "pytest==8.4.2",
+  "pytest-asyncio==1.2.0"
 ]
 
 [tool.flit.module]
 name = "norman"
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 markers = [
     "accounts: anything to do with account entities",
