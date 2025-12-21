@@ -1,3 +1,7 @@
+[build-system]
+requires = ["flit_core==3.12.0"]
+build-backend = "flit_core.buildapi"
+
 [project]
 name = "norman-sdk"
 version = "0.1.0"
@@ -10,11 +14,22 @@ dependencies = [
     "pyjwt==2.10.1"
 ]
 
-[build-system]
-requires = ["setuptools>=80.9.0", "wheel"]
-build-backend = "setuptools.build_meta"
+[project.optional-dependencies]
+dev = [
+  "pytest==8.4.2",
+  "pytest-asyncio==1.2.0"
+]
+
+[tool.flit.module]
+name = "norman"
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "accounts: anything to do with account entities",
+    "models: anything to do with model entities",
+    "invocations: anything to do with invocation entities"
 ]
