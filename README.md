@@ -133,6 +133,34 @@ The model accepts a text prompt and returns an image.
 For more details visit [Norman SDK upload model documentation](https://sdk.norman-ai.com/api/norman1/overview1#3)
 
 ### Define a Model Configuration
+The model configuration defines how your model is registered and exposed within Norman.
+It describes the model’s metadata, assets, and its expected inputs and outputs.
+
+At a high level, a model configuration includes:
+
+- Metadata
+Basic information such as the model name, version label, and descriptions that appear in the Models Library.
+
+- Assets
+References to model files (for example weights) that Norman will store and make available at runtime.
+
+- Input signatures - a structured definition of what inputs the model expects, including:
+
+  - Display titles shown to users
+
+  - Data encodings (e.g. txt, png)
+
+  - Parameter mappings used internally by the model
+
+- Output signatures - a definition of what the model returns, including:
+
+  - Output names exposed to users
+
+  - Data formats and encodings
+
+  - Whether the output is returned as a primitive value or a file
+
+This configuration allows Norman to automatically validate inputs, transform data, and correctly expose your model for invocation via the SDK.
 ```python
 model_config = {
     "name": "stable-diffusion-3.5-large",
@@ -171,6 +199,17 @@ model_config = {
 ```
 
 ### Upload the Model
+Once the model configuration is defined, uploading the model is a single API call.
+During upload, Norman:
+
+- Stores the model assets securely
+
+- Registers the input and output signatures
+
+- Makes the model available in your Models Library
+
+- Deploys the model for immediate invocation
+
 ```python
 from norman import Norman
 
