@@ -207,15 +207,7 @@ model_config = {
 
 ### Upload the Model
 Once the model configuration is defined, uploading the model is a single API call.
-During upload, Norman:
-
-- Stores the model assets securely
-
-- Registers the input and output signatures
-
-- Makes the model available in your Models Library
-
-- Deploys the model for immediate invocation
+During upload, Norman stores the model assets securely, registers the input and output signatures, makes the model available in your Models Library and deploys the model for immediate invocation
 
 ```python
 from norman import Norman
@@ -227,19 +219,4 @@ model = await norman.upload_model(model_config)
 
 ## What Happens After Uploading?
 
-Once the model is uploaded:
-- Norman stores your assets securely.
-- The model becomes visible in your Models Library.
-- You can invoke it immediately using:
-```python
-response = await norman.invoke({
-    "model_name": "stable-diffusion-3.5-large",
-    "inputs": [
-        {
-            "display_title": "Prompt",
-            "data": "A cat playing with a ball on mars"
-        }
-    ]
-})
-```
-
+Once the model is uploaded Norman stores your assets securely, the model becomes visible in your model library and you can invoke it immediately using the same code listed in invocation section.
