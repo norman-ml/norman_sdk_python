@@ -26,3 +26,9 @@ class Norman(metaclass=Singleton):
 
     async def invoke(self, invocation_config: dict[str, Any]) -> dict[str, bytearray]:
         return await self._invocation_manager.invoke(invocation_config)
+
+
+# {'account': {'id': '23847447181057556103927422566278567315', 'creation_time': '2025-12-15T19:29:08.888949Z', 'name': 'test_sdk1'}, 'api_key': 'S-QdTFsFMkf7pojquARbeSl-YDEWMR1eUPiCn7VEWcUDikBM6k8_o3jq-IP_LUNUufiz4dSew8uKWdUvdbkXbtsoNmlA3FiNo2zGupSls6PH1zuf'}
+# 
+# 
+#  curl -X POST "http://localhost:8011/login/default/23847447181057556103927422566278567315"   -H "Content-Type: application/json"

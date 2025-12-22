@@ -51,11 +51,17 @@ class ModelUploadManager:
     async def _upload_assets(self, token: Sensitive[str], model: ModelProjection, model_config: ModelProjectionConfig) -> None:
         asset_configs = {asset_entry.asset_name: asset_entry for asset_entry in model_config.version.assets}
 
+        # Ensure version_id is set and not "0"
+        version_id = model.version.id
+        if not version_id or version_id == "0":
+            raise ValueError(f"Model version ID is not set properly. Got: {version_id}")
+
         for model_asset in model.version.assets:
             asset_config = asset_configs[model_asset.asset_name]
-            await self._handle_asset_upload(token, model_asset, asset_config)
+            # Pass model.version.id since model_asset.version_id may be "0"
+            await self._handle_asset_upload(token, model_asset, asset_config, version_id)
 
-    async def _handle_asset_upload(self, token: Sensitive[str], model_asset: ModelAsset, asset: AssetConfig) -> None:
+    async def _handle_asset_upload(self, token: Sensitive[str], model_asset: ModelAsset, asset: AssetConfig, version_id: str) -> None:
         data = asset.data
 
         if asset.source is not None:
@@ -64,41 +70,43 @@ class ModelUploadManager:
             source = InputSourceResolver.resolve(data)
 
         if source == "File":
-            await self._handle_file_asset(token, model_asset, data)
+            await self._handle_file_asset(token, model_asset, data, version_id)
         elif source == "Stream":
-            await self._handle_stream_asset(token, model_asset, data)
+            await self._handle_stream_asset(token, model_asset, data, version_id)
         elif source == "Link":
-            await self._handle_link_asset(token, model_asset, data)
+            await self._handle_link_asset(token, model_asset, data, version_id)
         else:
             raise ValueError(f"Invalid model asset source: {source}")
 
-    async def _handle_file_asset(self, token: Sensitive[str], model_asset: ModelAsset, path: str) -> None:
+    async def _handle_file_asset(self, token: Sensitive[str], model_asset: ModelAsset, path: str, version_id: str) -> None:
         file_size = os.path.getsize(path)
+        
         pairing_request = SocketAssetPairingRequest(
             account_id=model_asset.account_id,
             model_id=model_asset.model_id,
-            version_id=model_asset.version_id,
             asset_id=model_asset.id,
             file_size_in_bytes=file_size
         )
-        await self._file_transfer_service.upload_file(token, pairing_request, path)
+        
+        # Pass version_id separately since SocketAssetPairingRequest model doesn't include it
+        await self._file_transfer_service.upload_file_with_version_id(token, pairing_request, path, version_id)
 
-    async def _handle_stream_asset(self, token: Sensitive[str], model_asset: ModelAsset, stream: Any) -> None:
+    async def _handle_stream_asset(self, token: Sensitive[str], model_asset: ModelAsset, stream: Any, version_id: str) -> None:
         file_size = self._file_utils.get_buffer_size(stream)
         pairing_request = SocketAssetPairingRequest(
             account_id=model_asset.account_id,
             model_id=model_asset.model_id,
-            version_id=model_asset.version_id,
             asset_id=model_asset.id,
             file_size_in_bytes=file_size
         )
-        await self._file_transfer_service.upload_from_buffer(token, pairing_request, stream)
+        # Pass version_id separately since SocketAssetPairingRequest model doesn't include it
+        await self._file_transfer_service.upload_from_buffer_with_version_id(token, pairing_request, stream, version_id)
 
-    async def _handle_link_asset(self, token: Sensitive[str], model_asset: ModelAsset, data: str) -> None:
+    async def _handle_link_asset(self, token: Sensitive[str], model_asset: ModelAsset, data: str, version_id: str) -> None:
         download_request = AssetDownloadRequest(
             account_id=model_asset.account_id,
             model_id=model_asset.model_id,
-            version_id=model_asset.version_id,
+            version_id=version_id,  # Use passed version_id instead of model_asset.version_id
             asset_id=model_asset.id,
             asset_name=model_asset.asset_name,
             links=[data],
