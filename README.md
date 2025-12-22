@@ -49,7 +49,7 @@ api_key = signup_response.api_key
 > Store your API key securely. API keys **cannot be regenerated** - if you lose your key, you will lose access to all your data in result across norman clients.
 
 ## 3. Run your first model
-With the Norman SDK, running a model is straightforward. You select a model from our [Models Library](https://norman-ai.com/library), check the required inputs and their format, and invoke the model using a simple API call.
+With the Norman SDK, running a model is straightforward. You select a model from our [Model Library](https://norman-ai.com/library), check the required inputs and their format, and invoke the model using a simple API call.
 
 Norman makes a distinction between deploying a model and invoking it. We call their configuration classes, respectively, the Model config and the Invocation config.
 
@@ -118,10 +118,9 @@ image.save("stable_diffusion_3_5_large_output_image.png")
 
 ## 4. Optional - Upload your own model
 
-Uploading a model is the first step to making it available through Norman’s managed inference API.
-You provide the model’s metadata, assets (such as weights), and input/output definitions - Norman handles storage, indexing, and deployment.
+Norman provides a large selection of ready to run AI models. If you want to deploy your own model, you can provide the model files, define the input and output signatures and configure the user interface. 
 
-Once uploaded, you can run it from anywhere using the Norman SDK.
+You can use the SDK to deploy your model to the Norman servers, letting you run it just as you would run any other model in the model library.
 
 ---
 
@@ -138,63 +137,71 @@ It describes the model’s metadata, assets, and its expected inputs and outputs
 
 At a high level, a model configuration includes:
 
-- Metadata
-Basic information such as the model name, version label, and descriptions that appear in the Models Library.
+- Basic information
+such as the model name, version label, and descriptions that appear in the Models Library.
 
 - Assets
 References to model files (for example weights) that Norman will store and make available at runtime.
 
-- Input signatures - a structured definition of what inputs the model expects, including:
+- Input signatures - a structured definition of what inputs the model expects, including display titles shown to users, data encodings (e.g. txt, png) and parameter mappings used internally by the model
 
-  - Display titles shown to users
+- Output signatures - a definition of what the model returns, including output names exposed to users, data formats and encodings and whether the output is returned as a primitive value or a file
 
-  - Data encodings (e.g. txt, png)
-
-  - Parameter mappings used internally by the model
-
-- Output signatures - a definition of what the model returns, including:
-
-  - Output names exposed to users
-
-  - Data formats and encodings
-
-  - Whether the output is returned as a primitive value or a file
-
-This configuration allows Norman to automatically validate inputs, transform data, and correctly expose your model for invocation via the SDK.
+This configuration allows Norman to validate inputs, transform data and allow users to invoke your model.
 ```python
 model_config = {
-    "name": "stable-diffusion-3.5-large",
-    "version_label": "beta",
-    "short_description": "A text-to-image diffusion model for high-quality image generation.",
-    "long_description": (
-        "Stable Diffusion 3.5 large is a latent text-to-image diffusion model trained on "
-        "a large-scale dataset to generate detailed and diverse images from natural "
-        "language prompts. It serves as a general-purpose foundation model that can "
-        "be fine-tuned for tasks such as image generation, editing, and style transfer."
-    ),
-    "assets": [
-        {"asset_name": "weights", "data": "./model.pt"}
-    ],
-    "inputs": [
-        {
-            "display_title": "Prompt",
-            "data_encoding": "txt",
-            "receive_format": "Primitive",
-            "parameters": [
-                {"parameter_name": "prompt", "data_encoding": "txt"}
-            ]
-        }
-    ],
-    "outputs": [
-        {
-            "display_title": "Image",
-            "data_encoding": "png",
-            "receive_format": "File",
-            "parameters": [
-                {"parameter_name": "image", "data_encoding": "png"}
-            ]
-        }
-    ]
+    "name":"stable-diffusion-3.5-large",
+    "category":"diffusion",
+    "version":{
+        "label":"beta",
+        "short_description": "A text-to-image diffusion model for high-quality image generation.",
+        "long_description": (
+            "Stable Diffusion 3.5 large is a latent text-to-image diffusion model trained on "
+            "a large-scale dataset to generate detailed and diverse images from natural "
+            "language prompts. It serves as a general-purpose foundation model that can "
+            "be fine-tuned for tasks such as image generation, editing, and style transfer."
+        ),    
+        "assets":[
+            {
+                "asset_name":"File",
+                "data":"<path/to/your/file>"
+            },
+            {
+                "asset_name":"Logo",
+                "data":"<path/to/your/file>"
+            }
+        ],
+        "inputs":[
+            {
+                "display_title":"Prompt",
+                "data_modality":"Text",
+                "data_domain":"prompt",
+                "data_encoding":"utf8",
+                "receive_format":"primitive",
+                "parameters":[
+                    {
+                        "parameter_name":"prompt",
+                        "data_encoding":"utf8"
+                    }
+                ]
+            }
+        ],
+        "outputs":[
+            {
+                "display_title":"Image",
+                "data_modality":"image",
+                "data_domain":"generate_image",
+                "data_encoding":"png",
+                "receive_format":"File",
+                "parameters":[
+                    {
+                        "parameter_name":"image",
+                        "data_encoding":"png"
+                    }
+                ]
+            }
+        ]
+    }
 }
 ```
 
