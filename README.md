@@ -60,7 +60,7 @@ Model owners define what is called the model signature when deploying to Norman.
 
 To run a model we must first define an invocation configuration object, defining how our input data maps to the model input signature:
 
-In this example we will define a configuration object for an image generation model called Stable Diffusion 3.5 Large:
+In this example we will define a configuration object for an image generation model called Stable Diffusion 3.5 Large. This particular model expects one text input from the user to be mapped to the "Prompt" parameter in the model:
 
 ```python
 invocation_config = {
@@ -74,7 +74,7 @@ invocation_config = {
 }
 ```
 
-### Run the Model
+### Invoke the model
 Running a model is an asynchronous process that can take several minutes to complete, the duration depends on the model size, the input size and the load on the Norman service.  
 
 For more granular control and advanced configuration options, please have a look at the [Norman Core SDK documentation](https://sdk.norman-ai.com/api/core/overviewcore/overviewcore).
@@ -96,16 +96,14 @@ Each model uploaded to Norman has a unique output signature. When you invoke a m
 - Dictionary keys each map to an output display title
 - Values are binary byte streams encoding the model output.
 
-Output values can be consumed and used in a variety of ways, according to the needs of each user.
-
-### Example: Parsing an image output from stable-diffusion-3.5-large
+Output values can be consumed and used in a variety of ways, according to the needs of each user. Stable Diffusion 3.5 Large exposes one output parameter called called "Image" which users can comsume:
 
 ```python
 from io import BytesIO
 from PIL import Image
 
 # Get the raw image bytes from the response
-data = response["output_image"]
+data = invocation_response["output_image"]
 
 # Load the image from memory
 img = Image.open(BytesIO(data))
