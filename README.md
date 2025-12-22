@@ -118,7 +118,7 @@ You can use the SDK to deploy your model to the Norman servers, letting you run 
 
 Below is a complete example showing how to upload the same stable-diffusion-3.5-large model as before. We want to map the true input and output signatures of the model, as defined by the model creators, into user friendly display titles that can be intuitively used during invocation.
 
-For more details visit [Norman SDK upload model documentation](https://sdk.norman-ai.com/api/norman1/overview1#3)
+For the full specification, please visit [Norman SDK documentation](https://sdk.norman-ai.com/api/norman1/overview1#3)
 
 ### Define a model configuration
 The model configuration defines how Norman deploys your model and what interfaces it should expose for end user invocation. It describes the model properties, assets and signature alongside many optional properties such as tags and parameters.
@@ -179,7 +179,7 @@ model_config = {
                 "receive_format":"File",
                 "parameters":[
                     {
-                        "parameter_name":"image",
+                        "parameter_name":"images[0]",
                         "data_encoding":"png"
                     }
                 ]
@@ -202,4 +202,4 @@ model = await norman.upload_model(model_config)
 
 ## What Happens next?
 
-Once the model has been deployed, you can run your model as many times as you need. Invocation is done using the same code used in the "Run your first model" section.
+Once the model has been deployed, you can run your model as many times as you need. Invocation is done using the same code used in the [Run your first model](https://github.com/norman-ml/norman_sdk_python/?tab=readme-ov-file#3-run-your-first-model) section.
