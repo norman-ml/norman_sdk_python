@@ -63,6 +63,7 @@ To run a model we must first define an invocation configuration object, defining
 In this example we will define a configuration object for an image generation model called Stable Diffusion 3.5 Large. This particular model expects one text input from the user to be mapped to the "Prompt" parameter in the model:
 
 ```python
+# define an invocation configuration object
 invocation_config = {
     "model_name": "stable-diffusion-3.5-large",
     "inputs": [
@@ -103,21 +104,19 @@ from io import BytesIO
 from PIL import Image
 
 # Get the raw image bytes from the response
-data = invocation_response["output_image"]
+image_bytes = invocation_response["Image"]
 
 # Load the image from memory
-img = Image.open(BytesIO(data))
-img.show(title="output_image - Memory")
+image = Image.open(BytesIO(image_bytes))
+image.show(title="stable-diffusion-3.5-large output image")
 
 # Optionally save the image to disk
-img.save("test_memory_output_image.png")
+image.save("stable_diffusion_3_5_large_output_image.png")
 
 ```
-In this example, the model returns an image as raw bytes, which are converted into a PIL Image object for viewing or saving.
-
 ---
 
-## 4. Upload your first model
+## 4. Optional - Upload your own model
 
 Uploading a model is the first step to making it available through Norman’s managed inference API.
 You provide the model’s metadata, assets (such as weights), and input/output definitions - Norman handles storage, indexing, and deployment.
@@ -130,6 +129,8 @@ Once uploaded, you can run it from anywhere using the Norman SDK.
 
 Below is a complete example of uploading a simple text to image model.
 The model accepts a text prompt and returns an image.
+
+For more details visit [Norman SDK upload model documentation](https://sdk.norman-ai.com/api/norman1/overview1#3)
 
 ### Define a Model Configuration
 ```python
