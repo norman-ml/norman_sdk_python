@@ -141,7 +141,7 @@ class InvocationManager:
         response_handlers = {}
 
         for output in invocation.outputs:
-            invocation_output = self._retrieve_service.get_invocation_output(token, invocation.account_id, invocation.model_id, invocation.id, output.id)
+            invocation_output = self._retrieve_service.get_invocation_output(token, invocation.account_id, invocation.version_id, invocation.id, output.id)
             response_handlers[output.display_title] = ResponseHandler(invocation_output)
 
         return response_handlers
