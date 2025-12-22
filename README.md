@@ -149,21 +149,21 @@ model_config = {
     ],
     "inputs": [
         {
-            "display_title": "Input Image",
-            "data_encoding": "png",
-            "receive_format": "File",
+            "display_title": "Prompt",
+            "data_encoding": "txt",
+            "receive_format": "Primitive",
             "parameters": [
-                {"parameter_name": "image", "data_encoding": "png"}
+                {"parameter_name": "prompt", "data_encoding": "txt"}
             ]
         }
     ],
     "outputs": [
         {
-            "display_title": "Output Image",
+            "display_title": "Image",
             "data_encoding": "png",
             "receive_format": "File",
             "parameters": [
-                {"parameter_name": "generated_image", "data_encoding": "png"}
+                {"parameter_name": "image", "data_encoding": "png"}
             ]
         }
     ]
