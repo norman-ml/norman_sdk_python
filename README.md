@@ -15,7 +15,7 @@ Main capabilities:
 - Simple invocation of deployed models
 - Api key registration management
 
-See our [Sdk Documentation](https://sdk.norman-ai.com/)
+For the full reference and details instructions please visit our [Sdk Documentation](https://sdk.norman-ai.com/)
 
 # Developer Quickstart
 
@@ -47,16 +47,16 @@ api_key = signup_response.api_key
 
 > ⚠️ **Important:**  
 > Store your API key securely.  
-> API keys **cannot be regenerated** - if you lose yours, you’ll need to create a new account.
+> API keys **cannot be regenerated** - if you lose your key, you will lose access to all your data in result across norman clients.
 
 ## 3. Run your first model
 
-With the Norman SDK, running a model is straightforward. You select a model from our [Models Library](https://norman-ai.com/library), check the required inputs and their format, and invoke the model using a simple API call. 
-
-Norman makes a distinction between deploying a model and invoking it. We call their configuration classes, respectively, the Model config and the Invocation config.
+With the Norman SDK, running a model is straightforward. You select a model from our [Models Library](https://norman-ai.com/library), check the required inputs and their format, and invoke the model using a simple API call.
 
 ---
 ### Define an invocation Configuration
+Norman makes a distinction between deploying a model and invoking it. We call their configuration classes, respectively, the Model config and the Invocation config.
+
 ```python
 invocation_config = {
     "model_name": "stable-diffusion-3.5-large",
@@ -70,6 +70,9 @@ invocation_config = {
 ```
 
 ### Run the Model
+Running a model is an asynchronous process and may take several minutes to complete, depending on the model and input size.
+
+For more granular control and advanced configuration options, refer to the [Norman Core SDK documentation](https://sdk.norman-ai.com/api/core/overviewcore/overviewcore).
 ```python
 from norman import Norman
 
