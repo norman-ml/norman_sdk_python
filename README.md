@@ -34,19 +34,16 @@ pip install norman
 Before making any requests, you’ll need to create an **API key**.  
 This key authorizes your SDK to securely access the Norman API.
 
-### Request Syntax
 ```python
 from norman import Norman
 
 response = await Norman.signup("<username>")
 ```
 
-### Parameters
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `username` | `str` | yes      | The account’s username or email address. |
-
-
+> ⚠️ **Important:**  
+> Store your API key securely.  
+> API keys **cannot be regenerated** - if you lose yours, you’ll need to create a new account.
+> 
 ### Example Response
 ```json
 {
@@ -55,26 +52,9 @@ response = await Norman.signup("<username>")
     "creation_time": "2025-11-09T14:22:17Z",
     "name": "Alice Johnson"
   },
-  "api_key": "nrm_sk_2a96b7b1a9f44b09b7c3f9f1843e93e2"
+  "api_key": "fQraVxLczNA4h01XWnjRT6Cpux-45Cdf5oZMbaCJ7pEDzXpqPIwMaDotq8VlqiG718iRf4DhyUJqGLJoe3lkSIsqfrgFFolvY6Bd0L4WDLQZLlks"
 }
 ```
-
-### Response Structure
-
-**Root object (`dict`):**
-
-- **account** (`dict`) - Account metadata containing the following fields:
-      - **id** (`str`) - Unique account identifier.  
-      - **creation_time** (`datetime`) - Account creation timestamp (UTC).  
-      - **name** (`str`) - Account display name.
-
-- **api_key** (`str`) - Generated API key used to authenticate SDK requests.
-
-
-> ⚠️ **Important:**  
-> Store your API key securely.  
-> API keys **cannot be regenerated** - if you lose yours, you’ll need to create a new account.
-
 
 ## 3. Run your first model
 
@@ -83,23 +63,25 @@ You select a model from the Models Library, provide the required inputs, and inv
 See all available models in the [Models Library](https://norman-ai.com/library).
 
 ---
+### Define the invocation Configuration
+```python
+invocation_config = {
+    "model_name": "stable-diffusion-2-base",
+    "inputs": [
+        {
+            "display_title": "Prompt",
+            "data": "A cat playing with a ball on mars"
+        }
+    ]
+}
+```
 
+### Invoke the Model
 ```python
 from norman import Norman
 
 # Initialize the SDK with your API key
-norman = Norman(api_key="nrm_sk_2a96b7b1a9f44b09b7c3f9f1843e93e2")
-
-# Define the invocation configuration
-invocation_config = {
-    "model_name": "<model_name>",
-    "inputs": [
-        {
-            "display_title": "Input",
-            "data": "/Users/alice/Desktop/sample_input.png"
-        }
-    ]
-}
+norman = Norman(api_key="fQraVxLczNA4h01XWnjRT6Cpux-45Cdf5oZMbaCJ7pEDzXpqPIwMaDotq8VlqiG718iRf4DhyUJqGLJoe3lkSIsqfrgFFolvY6Bd0L4WDLQZLlks")
 
 # Invoke the model
 response = await norman.invoke(invocation_config)
@@ -107,10 +89,10 @@ response = await norman.invoke(invocation_config)
 
 ---
 
-### Response
+### Example Response
 ```json
 {
-  "output": <bytes>  // binary data returned by the model
+  "Output Image": <bytes>  // binary data returned by the model
 }
 ```
 
@@ -125,18 +107,23 @@ Once uploaded, you can run it from anywhere using the Norman SDK.
 
 ---
 
-### Example: Uploading an Image Model
+### Example: Uploading a Text to Image Model
 
-Below is a complete example of uploading a simple image reversal model.
-The model accepts an image file and returns a mirrored copy.
+Below is a complete example of uploading a simple text to image model.
+The model accepts a text prompt and returns an image.
 
-## Step 1 - Define the Model Configuration
+### Define the Model Configuration
 ```python
 model_config = {
-    "name": "image_reverser_model",
+    "name": "stable-diffusion-2-base",
     "version_label": "beta",
-    "short_description": "A simple model that mirrors images.",
-    "long_description": "Demonstrates image reversal for onboarding.",
+    "short_description": "A text-to-image diffusion model for high-quality image generation.",
+    "long_description": (
+        "Stable Diffusion 2 Base is a latent text-to-image diffusion model trained on "
+        "a large-scale dataset to generate detailed and diverse images from natural "
+        "language prompts. It serves as a general-purpose foundation model that can "
+        "be fine-tuned for tasks such as image generation, editing, and style transfer."
+    ),
     "assets": [
         {"asset_name": "weights", "data": "./model.pt"}
     ],
@@ -156,36 +143,35 @@ model_config = {
             "data_encoding": "png",
             "receive_format": "File",
             "parameters": [
-                {"parameter_name": "mirror_image", "data_encoding": "png"}
+                {"parameter_name": "generated_image", "data_encoding": "png"}
             ]
         }
     ]
 }
 ```
 
-## Step 2 - Upload the Model
+### Upload the Model
 ```python
 from norman import Norman
 
-norman = Norman(api_key="nrm_sk_...")
+norman = Norman(api_key="fQraVxLczNA4h01XWnjRT6Cpux-45Cdf5oZMbaCJ7pEDzXpqPIwMaDotq8VlqiG718iRf4DhyUJqGLJoe3lkSIsqfrgFFolvY6Bd0L4WDLQZLlks")
 
 model = await norman.upload_model(model_config)
-print("Model uploaded successfully:", model.name)
 ```
 
-## What Happens After Upload?
+## What Happens After Uploading?
 
-- Once the model is uploaded:
+Once the model is uploaded:
 - Norman stores your assets securely.
 - The model becomes visible in your Models Library.
 - You can invoke it immediately using:
 ```python
 response = await norman.invoke({
-    "model_name": "image_reverser_model",
+    "model_name": "stable-diffusion-2-base",
     "inputs": [
         {
-            "display_title": "Input",
-            "data": "/path/to/image.png"
+            "display_title": "Prompt",
+            "data": "A cat playing with a ball on mars"
         }
     ]
 })
