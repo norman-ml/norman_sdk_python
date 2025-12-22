@@ -46,16 +46,21 @@ api_key = signup_response.api_key
 ```
 
 > ⚠️ **Important:**  
-> Store your API key securely.  
-> API keys **cannot be regenerated** - if you lose your key, you will lose access to all your data in result across norman clients.
+> Store your API key securely. API keys **cannot be regenerated** - if you lose your key, you will lose access to all your data in result across norman clients.
 
 ## 3. Run your first model
-
 With the Norman SDK, running a model is straightforward. You select a model from our [Models Library](https://norman-ai.com/library), check the required inputs and their format, and invoke the model using a simple API call.
 
----
-### Define an invocation Configuration
 Norman makes a distinction between deploying a model and invoking it. We call their configuration classes, respectively, the Model config and the Invocation config.
+
+---
+
+### Define an invocation configuration
+Model owners define what is called the model signature when deploying to Norman. A model signature consists of input and output signatures, which collectively define how Norman should transform user input so the model can run it and vice versa.
+
+To run a model we must first define an invocation configuration object, defining how our input data maps to the model input signature:
+
+In this example we will define a configuration object for an image generation model called Stable Diffusion 3.5 Large:
 
 ```python
 invocation_config = {
@@ -70,9 +75,9 @@ invocation_config = {
 ```
 
 ### Run the Model
-Running a model is an asynchronous process and may take several minutes to complete, depending on the model and input size.
+Running a model is an asynchronous process that can take several minutes to complete, the duration depends on the model size, the input size and the load on the Norman service.  
 
-For more granular control and advanced configuration options, refer to the [Norman Core SDK documentation](https://sdk.norman-ai.com/api/core/overviewcore/overviewcore).
+For more granular control and advanced configuration options, please have a look at the [Norman Core SDK documentation](https://sdk.norman-ai.com/api/core/overviewcore/overviewcore).
 ```python
 from norman import Norman
 
@@ -86,11 +91,12 @@ invocation_response = await norman.invoke(invocation_config)
 ---
 
 ### Use the model outputs
-Each model uploaded to Norman can expose a different output signature.
-When you invoke a model, the response is returned as a dictionary where:
+Each model uploaded to Norman has a unique output signature. When you invoke a model, the response is returned according to the structure of the output signature, formatted as a dictionary.
 
-- Keys are the output display titles
-- Values are the raw output data as bytes
+- Dictionary keys each map to an output display title
+- Values are binary byte streams encoding the model output.
+
+Output values can be consumed and used in a variety of ways, according to the needs of each user.
 
 ### Example: Parsing an image output from stable-diffusion-3.5-large
 
