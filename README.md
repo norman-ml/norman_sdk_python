@@ -139,7 +139,7 @@ model_config = {
     "version_label": "beta",
     "short_description": "A text-to-image diffusion model for high-quality image generation.",
     "long_description": (
-        "Stable Diffusion 2 Base is a latent text-to-image diffusion model trained on "
+        "Stable Diffusion 3.5 large is a latent text-to-image diffusion model trained on "
         "a large-scale dataset to generate detailed and diverse images from natural "
         "language prompts. It serves as a general-purpose foundation model that can "
         "be fine-tuned for tasks such as image generation, editing, and style transfer."
