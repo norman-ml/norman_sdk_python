@@ -1,3 +1,5 @@
+from tests.conftest import api_key
+
 # Norman SDK Overview
 
 Welcome to the Norman SDK - the developer toolkit for interacting with the Norman AI platform.
@@ -5,13 +7,15 @@ Welcome to the Norman SDK - the developer toolkit for interacting with the Norma
 Norman SDK offers a clean, intuitive interface for uploading and invoking AI models.
 
 Designed for developers, researchers, and production pipelines,
-the Norman SDK abstracts away the complexity of Norman’s microservices
-and gives you a powerful, ergonomic API for all model operations.
+the Norman SDK abstracts away the complexity of running AI models
+and gives you a powerful API for all model operations.
 
 Main capabilities:
 - Easy model upload workflows
-- Smooth invocation of deployed models
-- Account management
+- Simple invocation of deployed models
+- Api key registration management
+
+See our [Sdk Documentation](https://sdk.norman-ai.com/)
 
 # Developer Quickstart
 
@@ -37,46 +41,35 @@ This key authorizes your SDK to securely access the Norman API.
 ```python
 from norman import Norman
 
-response = await Norman.signup("<username>")
+signup_response = await Norman.signup("<username>")
+api_key = signup_response.api_key 
 ```
 
 > ⚠️ **Important:**  
 > Store your API key securely.  
 > API keys **cannot be regenerated** - if you lose yours, you’ll need to create a new account.
-> 
-### Example Response
-```json
-{
-  "account": {
-    "id": "23846818392186611174803470025142422015",
-    "creation_time": "2025-11-09T14:22:17Z",
-    "name": "Alice Johnson"
-  },
-  "api_key": "fQraVxLczNA4h01XWnjRT6Cpux-45Cdf5oZMbaCJ7pEDzXpqPIwMaDotq8VlqiG718iRf4DhyUJqGLJoe3lkSIsqfrgFFolvY6Bd0L4WDLQZLlks"
-}
-```
 
 ## 3. Run your first model
 
-With the Norman SDK, running a model is straightforward. 
-You select a model from the Models Library, provide the required inputs, and invoke it using a simple API call.
-See all available models in the [Models Library](https://norman-ai.com/library).
+With the Norman SDK, running a model is straightforward. You select a model from our [Models Library](https://norman-ai.com/library), check the required inputs and their format, and invoke the model using a simple API call. 
+
+Norman makes a distinction between deploying a model and invoking it. We call their configuration classes, respectively, the Model config and the Invocation config.
 
 ---
-### Define the invocation Configuration
+### Define an invocation Configuration
 ```python
 invocation_config = {
-    "model_name": "stable-diffusion-2-base",
+    "model_name": "stable-diffusion-3.5-large",
     "inputs": [
         {
             "display_title": "Prompt",
-            "data": "A cat playing with a ball on mars"
+            "data": "A cat playing with a ball on Mars"
         }
     ]
 }
 ```
 
-### Invoke the Model
+### Run the Model
 ```python
 from norman import Norman
 
@@ -84,17 +77,36 @@ from norman import Norman
 norman = Norman(api_key="fQraVxLczNA4h01XWnjRT6Cpux-45Cdf5oZMbaCJ7pEDzXpqPIwMaDotq8VlqiG718iRf4DhyUJqGLJoe3lkSIsqfrgFFolvY6Bd0L4WDLQZLlks")
 
 # Invoke the model
-response = await norman.invoke(invocation_config)
+invocation_response = await norman.invoke(invocation_config)
 ```
 
 ---
 
-### Example Response
-```json
-{
-  "Output Image": <bytes>  // binary data returned by the model
-}
+### Use the model outputs
+Each model uploaded to Norman can expose a different output signature.
+When you invoke a model, the response is returned as a dictionary where:
+
+- Keys are the output display titles
+- Values are the raw output data as bytes
+
+### Example: Parsing an image output from stable-diffusion-3.5-large
+
+```python
+from io import BytesIO
+from PIL import Image
+
+# Get the raw image bytes from the response
+data = response["output_image"]
+
+# Load the image from memory
+img = Image.open(BytesIO(data))
+img.show(title="output_image - Memory")
+
+# Optionally save the image to disk
+img.save("test_memory_output_image.png")
+
 ```
+In this example, the model returns an image as raw bytes, which are converted into a PIL Image object for viewing or saving.
 
 ---
 
@@ -112,10 +124,10 @@ Once uploaded, you can run it from anywhere using the Norman SDK.
 Below is a complete example of uploading a simple text to image model.
 The model accepts a text prompt and returns an image.
 
-### Define the Model Configuration
+### Define a Model Configuration
 ```python
 model_config = {
-    "name": "stable-diffusion-2-base",
+    "name": "stable-diffusion-3.5-large",
     "version_label": "beta",
     "short_description": "A text-to-image diffusion model for high-quality image generation.",
     "long_description": (
@@ -167,7 +179,7 @@ Once the model is uploaded:
 - You can invoke it immediately using:
 ```python
 response = await norman.invoke({
-    "model_name": "stable-diffusion-2-base",
+    "model_name": "stable-diffusion-3.5-large",
     "inputs": [
         {
             "display_title": "Prompt",
