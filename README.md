@@ -1,5 +1,3 @@
-from tests.conftest import api_key
-
 # Norman SDK Overview
 
 Welcome to the Norman SDK - the developer toolkit for interacting with the Norman AI platform.
@@ -17,11 +15,8 @@ Main capabilities:
 
 For the full reference and details instructions please visit our [Sdk Documentation](https://sdk.norman-ai.com/)
 
-# Developer Quickstart
-
 Take your first steps with the Norman API.
 
----
 
 ## 1. Install the Norman SDK
 
@@ -31,7 +26,6 @@ To use the Norman API in Python, install the official Norman SDK using **pip**:
 pip install norman
 ```
 
----
 
 ## 2. Signup and Create an API Key
 
@@ -53,7 +47,7 @@ With the Norman SDK, running a model is straightforward. You select a model from
 
 Norman makes a distinction between deploying a model and invoking it. We call their configuration classes, respectively, the Model config and the Invocation config.
 
----
+
 
 ### Define an invocation configuration
 Model owners define what is called the model signature when deploying to Norman. A model signature consists of input and output signatures, which collectively define how Norman should transform user input so the model can run it and vice versa.
@@ -83,13 +77,12 @@ For more granular control and advanced configuration options, please have a look
 from norman import Norman
 
 # Initialize the SDK with your API key
-norman = Norman(api_key="fQraVxLczNA4h01XWnjRT6Cpux-45Cdf5oZMbaCJ7pEDzXpqPIwMaDotq8VlqiG718iRf4DhyUJqGLJoe3lkSIsqfrgFFolvY6Bd0L4WDLQZLlks")
+norman = Norman(api_key="<your_api_key>")
 
 # Invoke the model
 invocation_response = await norman.invoke(invocation_config)
 ```
 
----
 
 ### Use the model outputs
 Each model uploaded to Norman has a unique output signature. When you invoke a model, the response is returned according to the structure of the output signature, formatted as a dictionary.
@@ -114,40 +107,31 @@ image.show(title="stable-diffusion-3.5-large output image")
 image.save("stable_diffusion_3_5_large_output_image.png")
 
 ```
----
 
-## 4. Optional - Upload your own model
+
+## 4. Optional - deploy your own model
 
 Norman provides a large selection of ready to run AI models. If you want to deploy your own model, you can provide the model files, define the input and output signatures and configure the user interface. 
 
 You can use the SDK to deploy your model to the Norman servers, letting you run it just as you would run any other model in the model library.
 
----
 
-### Example: Uploading a Text to Image Model
-
-Below is a complete example of uploading a simple text to image model.
-The model accepts a text prompt and returns an image.
+Below is a complete example showing how to upload the same stable-diffusion-3.5-large model as before. We want to map the true input and output signatures of the model, as defined by the model creators, into user friendly display titles that can be intuitively used during invocation.
 
 For more details visit [Norman SDK upload model documentation](https://sdk.norman-ai.com/api/norman1/overview1#3)
 
-### Define a Model Configuration
-The model configuration defines how your model is registered and exposed within Norman.
-It describes the model’s metadata, assets, and its expected inputs and outputs.
+### Define a model configuration
+The model configuration defines how Norman deploys your model and what interfaces it should expose for end user invocation. It describes the model properties, assets and signature alongside many optional properties such as tags and parameters.
 
-At a high level, a model configuration includes:
+it includes:
 
-- Basic information
-such as the model name, version label, and descriptions that appear in the Models Library.
+- Basic information such as the model name, version label, and descriptions that appear in the model library.
 
-- Assets
-References to model files (for example weights) that Norman will store and make available at runtime.
+- Assets configurations such as the model logo and weight files, associated with the model or required for inference.
 
-- Input signatures - a structured definition of what inputs the model expects, including display titles shown to users, data encodings (e.g. txt, png) and parameter mappings used internally by the model
+- Input and output signatures as a structured mapping between user data and model parameters, along with all supporting parameters required to perform the conversions and display the interface for the model in the Norman library.
 
-- Output signatures - a definition of what the model returns, including output names exposed to users, data formats and encodings and whether the output is returned as a primitive value or a file
-
-This configuration allows Norman to validate inputs, transform data and allow users to invoke your model.
+In this example we will define a configuration object for the model that displays a text input widget to receive user input, and an image output widget to render the model output:
 ```python
 model_config = {
     "name":"stable-diffusion-3.5-large",
@@ -155,12 +139,12 @@ model_config = {
     "version":{
         "label":"beta",
         "short_description": "A text-to-image diffusion model for high-quality image generation.",
-        "long_description": (
-            "Stable Diffusion 3.5 large is a latent text-to-image diffusion model trained on "
-            "a large-scale dataset to generate detailed and diverse images from natural "
-            "language prompts. It serves as a general-purpose foundation model that can "
-            "be fine-tuned for tasks such as image generation, editing, and style transfer."
-        ),    
+        "long_description": ("""
+            Stable Diffusion 3.5 large is a latent text-to-image diffusion model trained on
+            a large-scale dataset to generate detailed and diverse images from natural
+            language prompts. It serves as a general-purpose foundation model that can
+            be fine-tuned for tasks such as image generation, editing, and style transfer.
+        """),    
         "assets":[
             {
                 "asset_name":"File",
@@ -205,18 +189,17 @@ model_config = {
 }
 ```
 
-### Upload the Model
-Once the model configuration is defined, uploading the model is a single API call.
-During upload, Norman stores the model assets securely, registers the input and output signatures, makes the model available in your Models Library and deploys the model for immediate invocation
+### Upload the model
+Once the model configuration is defined, all you need to deploy it is to perform a single API call. Norman uploads your configuration, stores the model assets, registers the input and output signatures, creates a new listing in the model library and makes the model available for invocation.
 
 ```python
 from norman import Norman
 
-norman = Norman(api_key="fQraVxLczNA4h01XWnjRT6Cpux-45Cdf5oZMbaCJ7pEDzXpqPIwMaDotq8VlqiG718iRf4DhyUJqGLJoe3lkSIsqfrgFFolvY6Bd0L4WDLQZLlks")
+norman = Norman(api_key="<your_api_key>")
 
 model = await norman.upload_model(model_config)
 ```
 
-## What Happens After Uploading?
+## What Happens next?
 
-Once the model is uploaded Norman stores your assets securely, the model becomes visible in your model library and you can invoke it immediately using the same code listed in invocation section.
+Once the model has been deployed, you can run your model as many times as you need. Invocation is done using the same code used in the "Run your first model" section.
