@@ -59,7 +59,7 @@ class ModelUploadManager:
         data = asset.data
 
         if asset.source is not None:
-            source = asset.data
+            source = asset.source
         else:
             source = InputSourceResolver.resolve(data)
 
