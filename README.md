@@ -13,7 +13,7 @@ Main capabilities:
 - Simple invocation of deployed models
 - Api key registration management
 
-For the full reference and details instructions please visit our [Sdk Documentation](https://sdk.norman-ai.com/)
+For the full reference and detailed instructions, please visit our SDK documentation at https://sdk.norman-ai.com
 
 Take your first steps with the Norman API.
 
